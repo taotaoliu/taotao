@@ -4,11 +4,13 @@ node_js:
 branches:
   only:
   - travis
+os: osx
+
 cache:
   directories:
   - node_modules
 before_install:
-- openssl aes-256-cbc -K $encrypted_171076c72138_iv $encrypted_171076c72138_key
+- openssl aes-256-cbc -K $encrypted_171076c72138_key _iv $encrypted_171076c72138_iv
   -in .travis/id_rsa.enc -out ~/.ssh/id_rsa -d
 - chmod 600 ~/.ssh/id_rsa
 - eval $(ssh-agent)
