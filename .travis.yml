@@ -4,8 +4,7 @@ install:
   - npm install
 script:
   - hexo g
-
-after_script:
+after_success:
   - hexo deploy
 branches:
   only:
