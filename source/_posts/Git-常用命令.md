@@ -5,5 +5,3 @@ tags:
 ---
 1. hello
 2. word
-3. ni
-4. hao
