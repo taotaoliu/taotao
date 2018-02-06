@@ -11,7 +11,7 @@ install:
   - npm i node-sass -D #处理版本不兼容
 before_script:
   - npm install -g mocha
-  - git clone --branch master https://github.com/taotaoliu/taotaoliu.github.io.git public
+  - git clone --branch master https://github.com/taotaoliu/taotaoliu.github.io.git
 script:
   - hexo cl   #清除
   - hexo g   #生成
