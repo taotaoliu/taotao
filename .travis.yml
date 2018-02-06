@@ -7,7 +7,13 @@ script:
   - hexo g
 
 after_script:
-  - hexo deploy
+  - cd ./public
+  - git init
+  - git config user.name "taotaoliu"
+  - git config user.email "1007829260@qq.com"
+  - git add .
+  - git commit -m "Update docs"
+  - git push --force --quiet "https://${GH_TOKEN}@${GH_REF}" master:master
 
 branches:
   only:
