@@ -222,7 +222,7 @@ div {
     padding-top: 15px;
     text-align: justify;
     text-justify: distribute;
-    word-break: break-all; }
+    word-break: normal; }
     .post .post-content h2 {
       margin: 1.4em 0 1.1em;
       border-bottom: 1px solid #eee;
@@ -232,16 +232,19 @@ div {
     .post .post-content pre code {
       padding: 0 2em; }
     .post .post-content p {
-      margin: 0 0 1.234em; }
+      margin: 0 0 1.234em;
+      word-break: break-word;
+      overflow-wrap: break-word; }
       .post .post-content p code {
         display: inline-block;
         margin: 0 5px;
         padding: 0 5px;
-        background: #f7f8f8; }
+        background: #f7f8f8;
+        font-family: Menlo, Consolas, monospace !important; }
       .post .post-content p a {
         color: #01579f;
         padding-bottom: 2px;
-        word-break: break-all; }
+        word-break: normal; }
         .post .post-content p a:hover {
           text-decoration: underline; }
     .post .post-content .caption {
@@ -270,11 +273,12 @@ div {
         display: inline-block;
         margin: 0 5px;
         padding: 0px 5px;
-        background: #f7f8f8; }
+        background: #f7f8f8;
+        font-family: Menlo, Consolas, monospace !important; }
       .post .post-content ul a, .post .post-content ol a {
         color: #01579f;
         padding-bottom: 2px;
-        word-break: break-all; }
+        word-break: normal; }
         .post .post-content ul a:hover, .post .post-content ol a:hover {
           text-decoration: underline; }
   .post .tags {
@@ -887,6 +891,15 @@ figure.highlight,
 .highlight.c .code .built_in {
   color: #0086b3; }
 
+.highlight.clj .code .builtin-name {
+  color: #df5000; }
+
+.highlight.clj .code .name {
+  color: #795da3; }
+
+.highlight.clj .code .number {
+  color: #0086b3; }
+
 .highlight.cs .code .preprocessor,
 .highlight.cs .code .preprocessor .keyword {
   color: #333; }
@@ -1163,6 +1176,12 @@ figure.highlight,
 .highlight.less .selector-class,
 .highlight.less .selector-tag {
   color: #795da3; }
+
+.highlight.lisp .code .name {
+  color: #df5000; }
+
+.highlight.lisp .code .number {
+  color: #0086b3; }
 
 .highlight.scss .tag,
 .highlight.scss .at_rule,
@@ -1453,3 +1472,12 @@ em.search-keyword {
   color: #fff;
   background-color: #999999;
   text-shadow: 0; }
+
+.post-copyright {
+  margin: 2em 0 0;
+  padding: 0.5em 1em;
+  border-left: 3px solid #FF1700;
+  background-color: #F9F9F9;
+  list-style: none; }
+  .post-copyright li {
+    margin: 8px 0; }
