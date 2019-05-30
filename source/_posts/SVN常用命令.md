@@ -1,8 +1,9 @@
 ---
 title: SVN-常用命令
 date: 2018-02-01 18:13:48
-tags:
+tags: SVN
 ---
+
 1. 检出: checkout 缩写 co
 如果不带 --password  参数传输密码的话，会提示输入密码，建议不要用明文的 --password 选项。其中 username 与 password前是两个短线，不是一个。默认check到当前目录。
 
