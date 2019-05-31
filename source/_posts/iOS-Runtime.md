@@ -46,15 +46,15 @@ public:
 objc_object 中的 isa，对应类型为联合体 isa_t，源代码在 objc-private.h line 61, 关键代码定义如下：
 ```
 struct {
-	uintptr_t nonpointer        : 1;                                         \         //0:普通指针，1:优化过，使用位域存储更多信息
-	uintptr_t has_assoc         : 1;                                         \         //对象是否含有或曾经含有关联引用
-	uintptr_t has_cxx_dtor      : 1;                                         \         //表示是否有 C++ 析构函数或OC的 dealloc
-	uintptr_t shiftcls          : 44; /*MACH_VM_MAX_ADDRESS 0x7fffffe00000*/ \         //存放着 Class、Meta-Class 对象的内存地址信息
-	uintptr_t magic             : 6;                                         \         //用于在调试时分辨对象是否未完成初始化
-	uintptr_t weakly_referenced : 1;                                         \         //是否被弱引用指向
-	uintptr_t deallocating      : 1;                                         \         //对象是否正在释放
-	uintptr_t has_sidetable_rc  : 1;                                         \         //是否需要使用 sidetable 来存储引用计数
-	uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
+    uintptr_t nonpointer        : 1;                                         \         //0:普通指针，1:优化过，使用位域存储更多信息
+    uintptr_t has_assoc         : 1;                                         \         //对象是否含有或曾经含有关联引用
+    uintptr_t has_cxx_dtor      : 1;                                         \         //表示是否有 C++ 析构函数或OC的 dealloc
+    uintptr_t shiftcls          : 44; /*MACH_VM_MAX_ADDRESS 0x7fffffe00000*/ \         //存放着 Class、Meta-Class 对象的内存地址信息
+    uintptr_t magic             : 6;                                         \         //用于在调试时分辨对象是否未完成初始化
+    uintptr_t weakly_referenced : 1;                                         \         //是否被弱引用指向
+    uintptr_t deallocating      : 1;                                         \         //对象是否正在释放
+    uintptr_t has_sidetable_rc  : 1;                                         \         //是否需要使用 sidetable 来存储引用计数
+    uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
 }
 ```
 ### (2) objc_class
@@ -89,14 +89,14 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 cache_t 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
 struct cache_t {
-	struct bucket_t *_buckets;     // 散列表
-	mask_t _mask;                  // 散列表的长度 -1
-	mask_t _occupied;              // 已经缓存的方法数量
+    struct bucket_t *_buckets;     // 散列表
+    mask_t _mask;                  // 散列表的长度 -1
+    mask_t _occupied;              // 已经缓存的方法数量
 }
 
 struct bucket_t {
-	cache_key_t _key;              // SEL 作为 key
-	MethodCacheIMP _imp;           // 函数的内存地址
+    cache_key_t _key;              // SEL 作为 key
+    MethodCacheIMP _imp;           // 函数的内存地址
 };
 ```
 buckets: 指向 Method 数据结构指针的数组。这个数组可能包含不超过 mask+1 个元素。需要注意的是，指针可能是 NULL，表示这个缓存 bucket 没有被占用，另外被占用的 bucket 可能是不连续的。这个数组可能会随着时间而增长。
@@ -108,6 +108,74 @@ occupied: 一个整数，指定实际占用的缓存 bucket 的总数。
 cache_t 是一个散列表用来缓存曾经调用过的方法，可以提高方法的查找速度。
 
 ### (6) class_data_bits_t
+class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。class_rw_t 和 class_ro_t 关键代码如下：
+
+```
+struct class_rw_t {
+    // Be warned that Symbolication knows the layout of this structure.
+    uint32_t flags;
+    uint32_t version;
+
+    const class_ro_t *ro;             // 保存类的原始数据(不包含分类内容和动态添加的方法)
+    method_array_t methods;           // 方法列表(如果是类对象存储的是对象方法,元类对象存储的是类方法)
+    property_array_t properties;      // 属性列表
+    protocol_array_t protocols;       // 协议列表
+    Class firstSubclass;              // 第一个子类
+    Class nextSiblingClass;           // 兄弟类
+}
+
+struct class_ro_t {
+    uint32_t flags;
+    uint32_t instanceStart;
+    uint32_t instanceSize;
+#ifdef __LP64__
+    uint32_t reserved;
+#endif
+
+    const uint8_t * ivarLayout;
+    
+    const char * name;                    // 类名
+    method_list_t * baseMethodList;       // 原始方法列表
+    protocol_list_t * baseProtocols;      // 原始协议列表
+    const ivar_list_t * ivars;            // 成员变量列表
+
+    const uint8_t * weakIvarLayout;
+    property_list_t *baseProperties;      // 属性列表
+
+    method_list_t *baseMethods() const {
+        return baseMethodList;
+    }
+}
+
+```
+class_ro_t 储存了类的初始信息,不包括分类和后来动态添加的内容。method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下：
+```
+struct method_t {
+    SEL name;               // 函数名
+    const char *types;      // 方法参数 (包含了返回值类型,参数类型)
+    MethodListIMP imp;      // 方法的实现 (指向函数的指针)
+}
+```
+method_array_t 主要用来存储对象方法,其外层是 method_list_t，每个 method_list_t 又包含了多个 method_t，包含了动态添加的方法和分类的方法。每个动态添加的方法列表对应一个 method_list_t。 method_array_t 结构如下：
+```
+class method_array_t : 
+    public list_array_tt<method_t, method_list_t> 
+{
+    typedef list_array_tt<method_t, method_list_t> Super;
+
+ public:
+    method_list_t **beginCategoryMethodLists() {
+        return beginLists();
+    }
+    
+    method_list_t **endCategoryMethodLists(Class cls);
+
+    method_array_t duplicate() {
+        return Super::duplicate<method_array_t>();
+    }
+}
+```
+class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期就可以确定的，暂且称为元信息吧，在之后的逻辑中，它们显然是不希望被改变的；后续在用户层，无论是方法还是别的扩展，都是在 class_rw_t 上进行操作，这些操作都不会影响类的元信息。更多关于 class_rw_t 和 class_ro_t 的资料可查看 [这篇文章](https://zhangbuhuai.com/post/runtime.html)。
 
 ## 	3.操作方法
 
