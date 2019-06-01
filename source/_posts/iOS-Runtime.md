@@ -4,17 +4,24 @@ date: 2019-05-30 10:25:47
 tags: iOS
 ---
 
-**Objc Runtime**
+## Objc Runtime
+  源代码下载地址：[http://www.opensource.apple.com/source/objc4/](http://www.opensource.apple.com/source/objc4/)
 
-##  1.概念
-	Objective-C 是一门动态语言，它将很多静态语言在编译和链接时做的事情推迟到运行时来处理。
-	这种特性意味着 Objective-C 不仅需要一个编译器，还需要一个运行时系统来执行编译的代码。
-	对于 Objective-C 来说，这个运行时系统就像一个操作系统一样：它让所有的工作可以正常的运行。
-	Runtime就是使用 C 和汇编写的一个运行时库，一般我们说 Runtime，不但包含运行时库的意思，
-	还包含了运行时、运行时系统等概念。Objc Runtime 使得 C 具有了面向对象能力，在程序运行时创建，
-	检查，修改类、对象和它们的方法。
+  Runtime 函数文档: [https://developer.apple.com/documentation/objectivec/objective-c_runtime](https://developer.apple.com/documentation/objectivec/objective-c_runtime)
 
-## 	2.数据结构
+  苹果官方 Runtime 编程指南：
+  [https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048)
+### 1. 概念
+ Objective-C 是一门动态语言，它将很多静态语言在编译和链接时做的事情推迟到运行时来处理。
+
+ 这种动态特性意味着 Objective-C 不仅需要一个编译器，还需要一个运行时系统来执行编译的代码。
+ 对于 Objective-C 来说，这个运行时系统就像一个操作系统一样：它让所有的工作可以正常的运行。
+
+ Runtime 就是使用 C 和汇编写的一个运行时库，一般我们说 Runtime，不但包含运行时库的意思，还包含了运行时、运行时系统等概念。
+
+**Objc Runtime 使得 C 具有了面向对象能力，可以在程序运行时创建、检查、修改类、对象和它们的方法**。
+
+### 2. Class 和 Object 基本数据结构
 ```
 typedef struct objc_class *Class;
 typedef struct objc_object *id;
@@ -27,7 +34,7 @@ typedef struct objc_object *id;
 	Ivar：成员变量的类型
 	Property：属性存储器
 	Cache：方法调用的缓存器，为方法调用的性能进行优化
-### (1) objc_object 和 isa
+#### (1) objc_object 和 isa
 objc_object 源代码在 objc-private.h line 75, 关键代码如下：
 ```
 struct objc_object {
@@ -57,7 +64,7 @@ struct {
     uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
 }
 ```
-### (2) objc_class
+#### (2) objc_class
 objc_class 源代码可在 objc-runtime-new.h line 1111 看到，由于 objc_class 继承自 objc_object， 所以其关键结构可简化如下:
 ```
 struct objc_class : objc_object {
@@ -75,7 +82,7 @@ objc_object 用来描述 OC 中的实例，当用口语描述实例时，总会�
 Objective-C 中的类本质上也是对象，称之为类对象，在 Objective-C 中有一个非常特殊的类 NSObject ，绝大部分的类都继承自它。它是 Objective-C 中的两个根类（rootclass）之一，另外一个是 NSProxy。
 NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会有这个成员变量。
 
-### (3) 元类（metaclass），根类（root class），根元类（root metaclass）
+#### (3) 元类（metaclass），根类（root class），根元类（root metaclass）
 本质上 Objective-C 中的类也是对象，它也是某个类的实例，这个类我们称之为元类（metaclass）。元类也是对象（元类对象），元类也是某个类的实例，这个类我们称之为根元类（root metaclass）。
 不过，有一点比较特殊，那就是所有的元类所属的类都是同一个根元类（当然根元类也是元类，所以它所属的类也是根元类，即它本身）。根元类指的就是根类的元类，具体来说就是根类 NSObject 对应的元类。
 
@@ -83,9 +90,9 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 
 下图是为类（class），元类（metaclass），根类（root class），根元类（root metaclass）关系
 ![](iOS-Runtime/object_model.png)
-### (4) superclass
+#### (4) superclass
 指向该类的父类，如果该类已经是最顶层的根类（如 NSObject 或 NSProxy），则 superclass 为 NULL。
-### (5) cache_t
+#### (5) cache_t
 cache_t 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
 struct cache_t {
@@ -107,9 +114,10 @@ occupied: 一个整数，指定实际占用的缓存 bucket 的总数。
 
 cache_t 是一个散列表用来缓存曾经调用过的方法，可以提高方法的查找速度。
 
-### (6) class_data_bits_t
-class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。class_rw_t 和 class_ro_t 关键代码如下：
+#### (6) class_data_bits_t
+class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
+**class_rw_t 结构如下**：
 ```
 struct class_rw_t {
     // Be warned that Symbolication knows the layout of this structure.
@@ -124,6 +132,10 @@ struct class_rw_t {
     Class nextSiblingClass;           // 兄弟类
 }
 
+```
+
+**class_ro_t 储存了类的初始信息，不包括分类和后来动态添加的内容。class_ro_t 关键代码如下**
+```
 struct class_ro_t {
     uint32_t flags;
     uint32_t instanceStart;
@@ -148,7 +160,7 @@ struct class_ro_t {
 }
 
 ```
-class_ro_t 储存了类的初始信息,不包括分类和后来动态添加的内容。method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下：
+**method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下**：
 ```
 struct method_t {
     SEL name;               // 函数名
@@ -156,29 +168,100 @@ struct method_t {
     MethodListIMP imp;      // 方法的实现 (指向函数的指针)
 }
 ```
-method_array_t 主要用来存储对象方法,其外层是 method_list_t，每个 method_list_t 又包含了多个 method_t，包含了动态添加的方法和分类的方法。每个动态添加的方法列表对应一个 method_list_t。 method_array_t 结构如下：
+**ivar_list_t 数组包含了多个 ivar_t 类型的结构体 ivar，ivar_t 结构如下**
+
 ```
-class method_array_t : 
-    public list_array_tt<method_t, method_list_t> 
-{
-    typedef list_array_tt<method_t, method_list_t> Super;
+struct ivar_t {
+    int32_t *offset;               // 变量在内存中相对所属对象内存空间起始地址的偏移量,偏移量大小根据类型来定
+    const char *name;              // 变量名
+    const char *type;              // 变量类型
+    // alignment is sometimes -1; use alignment() instead
+    uint32_t alignment_raw;
+    uint32_t size;
 
- public:
-    method_list_t **beginCategoryMethodLists() {
-        return beginLists();
-    }
-    
-    method_list_t **endCategoryMethodLists(Class cls);
-
-    method_array_t duplicate() {
-        return Super::duplicate<method_array_t>();
+    uint32_t alignment() const {
+        if (alignment_raw == ~(uint32_t)0) return 1U << WORD_SHIFT;
+        return 1 << alignment_raw;
     }
 }
 ```
+**property_list_t 数组包含多个 property_t，property_t 结构如下**
+```
+struct property_t {
+    const char *name;             
+    const char *attributes;        
+}
+```
+
 class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期就可以确定的，暂且称为元信息吧，在之后的逻辑中，它们显然是不希望被改变的；后续在用户层，无论是方法还是别的扩展，都是在 class_rw_t 上进行操作，这些操作都不会影响类的元信息。更多关于 class_rw_t 和 class_ro_t 的资料可查看 [这篇文章](https://zhangbuhuai.com/post/runtime.html)。
 
-## 	3.操作方法
+### 3. 类和对象相关操作方法
+操作类相关的函数一般以 class 为前缀，操作对象相关函数以 objc 或 object_ 为前缀。可在开篇 Runtime 函数文档查看相关方法。
 
-## 	4.应用
+#### (1) 类相关操作函数	
+```
+	const char * class_getName ( Class cls )           // 获取类名
 
-**Swift Runtime**
+	Class class_getSuperclass ( Class cls )            // 获取父类
+
+	BOOL class_isMetaClass ( Class cls )               // 判断给定的类是不是元类
+
+	size_t class_getInstanceSize ( Class cls )         // 获取类的实例大小
+
+	int class_getVersion ( Class cls )                 // 获取版本号
+
+	void class_setVersion ( Class cls, int version )   // 设置版本号
+
+
+```
+
+#### (2) 成员变量 (ivars) 和属性相关操作函数
+```
+	Ivar class_getInstanceVariable ( Class cls, const char *name )                                           // 获取类中指定名称实例成员变量的信息
+
+	Ivar class_getClassVariable ( Class cls, const char *name )                                              // 获取类成员变量的信息
+
+	BOOL class_addIvar ( Class cls, const char *name, size_t size, uint8_t alignment, const char *types )    // 在 runtime 时创建的类添加成员变量
+
+	Ivar * class_copyIvarList ( Class cls, unsigned int *outCount )                                          // 获取整个成员变量列表，必须使用 free() 来释放
+
+
+```
+#### (3) method 相关操作函数
+```
+	BOOL class_addMethod ( Class cls, SEL name, IMP imp, const char *types )       // 添加方法，和成员变量不同的是可以为类动态添加方法。如果有同名会返回 NO，修改的话需要使用 method_setImplementation
+
+	Method class_getInstanceMethod ( Class cls, SEL name )                         // 获取实例方法
+
+	Method class_getClassMethod ( Class cls, SEL name )                            // 获取类方法
+
+	Method * class_copyMethodList ( Class cls, unsigned int *outCount )            // 获取所有方法
+
+	IMP class_replaceMethod ( Class cls, SEL name, IMP imp, const char *types )    // 实现替换方法
+
+	IMP class_getMethodImplementation ( Class cls, SEL name )                      // 返回方法的具体实现
+
+	IMP class_getMethodImplementation_stret ( Class cls, SEL name )                // 返回方法的具体实现
+
+	BOOL class_respondsToSelector ( Class cls, SEL sel )                           // 类实例是否响应指定的 selector
+
+
+
+```
+#### (4) protocol 相关操作函数
+```
+	BOOL class_addProtocol ( Class cls, Protocol *protocol )                       // 添加协议
+
+	BOOL class_conformsToProtocol ( Class cls, Protocol *protocol )                // 返回类是否实现指定的协议
+
+	Protocol * class_copyProtocolList ( Class cls, unsigned int *outCount )        // 获取类实现的协议列表
+
+
+```
+
+#### (5) 相关示例代码：
+
+
+### 4. 应用
+
+## Swift Runtime

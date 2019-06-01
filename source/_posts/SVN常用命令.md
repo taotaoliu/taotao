@@ -4,21 +4,18 @@ date: 2018-02-01 18:13:48
 tags: SVN
 ---
 
-1. 检出: checkout 缩写 co
+### 1. 检出: checkout 缩写 co
 如果不带 --password  参数传输密码的话，会提示输入密码，建议不要用明文的 --password 选项。其中 username 与 password前是两个短线，不是一个。默认check到当前目录。
-
-    ```
+```
     svn  checkout  http://路径(目录或文件的全路径)　[本地目录全路径] --username　用户名
     svn  checkout  svn://路径(目录或文件的全路径)　 [本地目录全路径] --username　用户名
 
     //例子：
     svn co svn://localhost/files          --username taotao
     svn checkout http://localhost/files   --username taotao
-    ```
-
-2. 导出(导出一个干净的不带.svn文件夹的目录树)
-
-    ```
+```
+### 2. 导出(导出一个干净的不带.svn文件夹的目录树)
+```
     svn  export  [-r 版本号]  http: //路径(目录或文件的全路径) --username　用户名
     svn  export  [-r 版本号]  svn:  //路径(目录或文件的全路径) --username　用户名
     svn  export  本地检出的(即带有.svn文件夹的)目录全路径  要导出的本地目录全路径
@@ -28,30 +25,24 @@ tags: SVN
     svn export svn://localhost/files --username wzhnsc
     svn export /home/files /home/tofiles
     ```
-
-3. 添加新文件: add
-
-    ```
+### 3. 添加新文件: add
+```
     svn　add　文件名
 
     //例子：
     svn add picture.png
-    ```
-
-4. 提交: commit 缩写 ci
-
-    ```
+```
+### 4. 提交: commit 缩写 ci
+```
     svn　commit　-m　“提交备注信息文本“　[-N]　[--no-unlock]　文件名
     svn　ci　-m　“提交备注信息文本“　    [-N]　[--no-unlock]　文件名
 
     //例子：
     svn commit -m “提交我的测试用test.swift“ test.swift
     svn ci -m “提交我的测试用test.swift“ test.swift
-    ```
-
-5. 更新文件: update
-
-    ```
+```
+### 5. 更新文件: update
+```
     svn　update
     svn　update　-r　修正版本　文件名
     svn　update　文件名
@@ -69,11 +60,9 @@ tags: SVN
 
     //更新与版本库同步。提交的时候提示过期冲突，需要先update修改文件，然后清除
     svn resolved，最后再提交commit。
-    ```
-
-6. 删除文件: delete
-
-    ```
+```
+### 6. 删除文件: delete
+```
     svn　delete　svn://路径(目录或文件的全路径) -m “删除备注信息文本”
     svn　delete　文件名 
 
@@ -82,22 +71,18 @@ tags: SVN
 
     //如下：
     svn delete test.swift 
-    ```
-
-7. 加锁: lock
-
-    ```
+```
+### 7. 加锁: lock
+```
     svn　lock　-m　“加锁备注信息文本“　[--force]　文件名 
     svn　unlock　文件名
 
     //例子：
     svn lock -m “锁信测试用test.swift文件“ test.swift 
     svn unlock test.swift
-    ```
-
-8. 比较差异: diff
-
-    ```
+```
+### 8. 比较差异: diff
+```
     svn　diff　     文件名 
     svn　diff　-r　 修正版本号m:修正版本号n　文件名
 
@@ -109,11 +94,9 @@ tags: SVN
     svn diff -r 200:201 test.swift   
 
     //对修正版本号200和修正版本号201比较差异
-    ```
-
-9. 查看文件或者目录状态: status  缩写 st
-
-    ```
+```
+### 9. 查看文件或者目录状态: status  缩写 st
+```
     svn st 目录路径/名
 
     //目录下的文件和子目录的状态，正常状态不显示 //?：不在svn的控制中M：内容被修改；C：发生冲突A：预定加入到版本库 K：被锁定 
@@ -124,31 +107,25 @@ tags: SVN
 
     //显示文件和子目录状态,第一列保持相同，第二列显示工作版本号，第三和第四列显示最后一次
     //修改的版本号和修改人
-    ```
-
-10. 查看日志: log
-
-    ```
+```
+### 10. 查看日志: log
+```
     svn　log　文件名
 
     //例子：
     svn log test.swift    
 
     //显示这个文件的所有修改记录，及其版本号的变化
-    ```
-
-11. 查看文件详细信息: info
-
-    ```
+```
+### 11. 查看文件详细信息: info
+```
     svn　info　文件名
 
     //例子：
     svn info test.swift
-    ```
-
-12. 查看版本库下的文件和目录列表: list 缩写 ls
-
-    ```
+```
+### 12. 查看版本库下的文件和目录列表: list 缩写 ls
+```
     svn　list　svn://路径(目录或文件的全路径)
     svn　ls　svn://路径(目录或文件的全路径)
 
@@ -157,11 +134,9 @@ tags: SVN
     svn ls svn://localhost/test   
 
     //显示svn://localhost/test目录下的所有属于版本库的文件和目录 
-    ```
-
-13. 恢复本地修改: revert
-
-    ```
+```
+### 13. 恢复本地修改: revert
+```
     svn　revert　[--recursive]　文件名
 
     //注意: 本子命令不会存取网络，并且会解除冲突的状况。但是它不会恢复被删除的目录。
@@ -174,11 +149,9 @@ tags: SVN
     svn revert --recursive .     
 
     //恢复一整个目录的文件，. 为当前目录 
-    ```
-
-14. 把工作拷贝更新到别的URL: switch
-
-    ```
+```
+### 14. 把工作拷贝更新到别的URL: switch
+```
     svn　switch　http://目录全路径　  
 
     //本地目录全路径
@@ -187,29 +160,24 @@ tags: SVN
     svn switch http://localhost/test/456 .  
 
     //(原为123的分支)当前所在目录分支到
-    ```
-
-15. 新建分支: copy
-    ```
+```
+### 15. 新建分支: copy
+```
     svn copy
 
     //例子：
     svn copy branchA branchB  -m "make B branch"
     //从branchA拷贝出一个新分支branchB
-    ```
-
-16. 合并分支: merge
-    ```
-
+```
+### 16. 合并分支: merge
+```
     //例子：
     svn merge branchA branchB  
 
     //把对branchA的修改合并到分支branchB
-    ```
-
-17. 解决冲突：resolved
-
-    ```
+```
+### 17. 解决冲突：resolved
+```
     svn　resolved　[本地目录全路径]
 
     //例子：
@@ -227,4 +195,4 @@ tags: SVN
     //运行svn resolved让你的工作拷贝知道你已经完成了所有事情。
     //你可以仅仅删除冲突的文件并且提交，
     //但是svn resolved除了删除冲突文件，还修正了一些记录在工作拷贝管理区域的记录数据。
-    ```
+```
