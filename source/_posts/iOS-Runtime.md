@@ -21,11 +21,15 @@ tags: iOS
 
 **Objc Runtime 使得 C 具有了面向对象能力，可以在程序运行时创建、检查、修改类、对象和它们的方法**。
 
-### 2. Class 和 Object 基本数据结构
-```
-typedef struct objc_class *Class;
-typedef struct objc_object *id;
-```
+### 2. Runtime 的作用主要有如下几点：
+#### (1) 封装：
+ Runtime 库中，对象可以用 C 语言中的结构体表示，而方法可以用 C 函数来实现，再加上了一些其他的特性。这些结构体和函数被 runtime 函数封装后，就可以在程序运行时创建、检查、修改类、对象和它们的方法了。
+
+#### (2) 找到方法的最终执行代码：
+ 当程序中执行 [receiver message] 时，会向消息接收者（receiver）发送一条消息 message，runtime 会根据消息接收者是否能响应该消息而做出不同的反应，即消息转发的流程。
+
+### 3. 类和对象（Class 和 Object）相关的基本数据结构
+#### (1) 关键词：
  Class：指向了 objc_class 结构体的指针 
 	id：参数类型，指向某个类实例的指针 
 	Method：代表了类中的某个方法的类型
@@ -34,7 +38,13 @@ typedef struct objc_object *id;
 	Ivar：成员变量的类型
 	Property：属性存储器
 	Cache：方法调用的缓存器，为方法调用的性能进行优化
-#### (1) objc_object 和 isa
+
+#### (2) objc_class 和 objc_object 数据结构：
+```
+typedef struct objc_class *Class;
+typedef struct objc_object *id;
+```
+#### (3) objc_object 和 isa
 objc_object 源代码在 objc-private.h line 75, 关键代码如下：
 ```
 struct objc_object {
@@ -64,7 +74,7 @@ struct {
     uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
 }
 ```
-#### (2) objc_class
+#### (4) objc_class
 objc_class 源代码可在 objc-runtime-new.h line 1111 看到，由于 objc_class 继承自 objc_object， 所以其关键结构可简化如下:
 ```
 struct objc_class : objc_object {
@@ -82,7 +92,7 @@ objc_object 用来描述 OC 中的实例，当用口语描述实例时，总会�
 Objective-C 中的类本质上也是对象，称之为类对象，在 Objective-C 中有一个非常特殊的类 NSObject ，绝大部分的类都继承自它。它是 Objective-C 中的两个根类（rootclass）之一，另外一个是 NSProxy。
 NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会有这个成员变量。
 
-#### (3) 元类（metaclass），根类（root class），根元类（root metaclass）
+#### (5) 元类（metaclass），根类（root class），根元类（root metaclass）
 本质上 Objective-C 中的类也是对象，它也是某个类的实例，这个类我们称之为元类（metaclass）。元类也是对象（元类对象），元类也是某个类的实例，这个类我们称之为根元类（root metaclass）。
 不过，有一点比较特殊，那就是所有的元类所属的类都是同一个根元类（当然根元类也是元类，所以它所属的类也是根元类，即它本身）。根元类指的就是根类的元类，具体来说就是根类 NSObject 对应的元类。
 
@@ -90,9 +100,9 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 
 下图是为类（class），元类（metaclass），根类（root class），根元类（root metaclass）关系
 ![](iOS-Runtime/object_model.png)
-#### (4) superclass
+#### (6) superclass
 指向该类的父类，如果该类已经是最顶层的根类（如 NSObject 或 NSProxy），则 superclass 为 NULL。
-#### (5) cache_t
+#### (7) cache_t
 cache_t 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
 struct cache_t {
@@ -114,7 +124,7 @@ occupied: 一个整数，指定实际占用的缓存 bucket 的总数。
 
 cache_t 是一个散列表用来缓存曾经调用过的方法，可以提高方法的查找速度。
 
-#### (6) class_data_bits_t
+#### (8) class_data_bits_t
 class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
 **class_rw_t 结构如下**：
@@ -195,7 +205,7 @@ struct property_t {
 
 class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期就可以确定的，暂且称为元信息吧，在之后的逻辑中，它们显然是不希望被改变的；后续在用户层，无论是方法还是别的扩展，都是在 class_rw_t 上进行操作，这些操作都不会影响类的元信息。更多关于 class_rw_t 和 class_ro_t 的资料可查看 [这篇文章](https://zhangbuhuai.com/post/runtime.html)。
 
-### 3. 类和对象相关操作方法
+### 4. 类和对象相关操作方法
 操作类相关的函数一般以 class 为前缀，操作对象相关函数以 objc 或 object_ 为前缀。可在开篇 Runtime 函数文档查看相关方法。
 
 #### (1) 类相关操作函数	
@@ -262,6 +272,30 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 #### (5) 相关示例代码：
 
 
-### 4. 应用
+### 5. 消息与消息转发
+#### (1) Method 基础数据结构：
+  Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
+
+**SEL:**
+Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址( int 类型的地址)：这个标识就是 SEL，其结构如下：
+
+```
+	typedef struct objc_selector *SEL
+```
+**IMP：**
+是一个函数指针，指向方法实现的地址。其结构如下：
+```
+	/// A pointer to the function of a method implementation. 
+	#if !OBJC_OLD_DISPATCH_PROTOTYPES
+	typedef void (*IMP)(void /* id, SEL, ... */ ); 
+	#else
+	typedef id _Nullable (*IMP)(id _Nonnull, SEL _Nonnull, ...); 
+	#endif
+```
+**SEL 和 IMP 为映射关系：**SEL 通过 Dispatch table 表寻找到对应的 IMP， Dispatch table 表 (哈希表) 存放 SEL 和 IMP 的映射。我们可以对一个编号 (SEL) 和什么方法 (IMP) 映射做些操作，也就是说我们可以一个 SEL 指向不同的函数指针，这样就可以完成一个方法名在不同时候执行不同的函数体。
+#### (2) 相关操作方法：
+```
+
+```
 
 ## Swift Runtime
