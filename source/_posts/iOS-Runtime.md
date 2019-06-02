@@ -21,13 +21,11 @@ tags: iOS
 
 **Objc Runtime 使得 C 具有了面向对象能力，可以在程序运行时创建、检查、修改类、对象和它们的方法**。
 
-### 2. Runtime 的作用主要有如下几点：
-#### (1) 封装：
+### 2. Runtime 的作用：
+#### (1) 封装
  Runtime 库中，对象可以用 C 语言中的结构体表示，而方法可以用 C 函数来实现，再加上了一些其他的特性。这些结构体和函数被 runtime 函数封装后，就可以在程序运行时创建、检查、修改类、对象和它们的方法了。
-
-#### (2) 找到方法的最终执行代码：
+#### (2) 找到方法的最终执行代码
  当程序中执行 [receiver message] 时，会向消息接收者（receiver）发送一条消息 message，runtime 会根据消息接收者是否能响应该消息而做出不同的反应，即消息转发的流程。
-
 ### 3. 类和对象（Class 和 Object）相关的基本数据结构
 #### (1) 关键词：
  Class：指向了 objc_class 结构体的指针 
@@ -103,7 +101,8 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 #### (6) superclass
 指向该类的父类，如果该类已经是最顶层的根类（如 NSObject 或 NSProxy），则 superclass 为 NULL。
 #### (7) cache_t
-cache_t 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
+cache_t 是一个散列表，用来缓存曾经调用过的方法，提高方法的查找速度。
+源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
 struct cache_t {
     struct bucket_t *_buckets;     // 散列表
@@ -116,18 +115,16 @@ struct bucket_t {
     MethodCacheIMP _imp;           // 函数的内存地址
 };
 ```
-buckets: 指向 Method 数据结构指针的数组。这个数组可能包含不超过 mask+1 个元素。需要注意的是，指针可能是 NULL，表示这个缓存 bucket 没有被占用，另外被占用的 bucket 可能是不连续的。这个数组可能会随着时间而增长。
+**buckets：**指向 Method 数据结构指针的数组。这个数组可能包含不超过 mask+1 个元素。需要注意的是，指针可能是 NULL，表示这个缓存 bucket 没有被占用，另外被占用的 bucket 可能是不连续的。这个数组可能会随着时间而增长。
 
-mask: 一个整数，指定分配的缓存 bucket 的总数。在方法查找过程中，Objective-C runtime 使用这个字段来确定开始线性查找数组的索引未知。指向方法 selector 的指针与该字段做一个 AND 位操作（index = (mask & selector)）。这可以作为一个简单的 hash 散列算法。
+**mask：**一个整数，指定分配的缓存 bucket 的总数。在方法查找过程中，Objective-C runtime 使用这个字段来确定开始线性查找数组的索引未知。指向方法 selector 的指针与该字段做一个 AND 位操作（index = (mask & selector)）。这可以作为一个简单的 hash 散列算法。
 
-occupied: 一个整数，指定实际占用的缓存 bucket 的总数。
-
-cache_t 是一个散列表用来缓存曾经调用过的方法，可以提高方法的查找速度。
+**occupied：**一个整数，指定实际占用的缓存 bucket 的总数。
 
 #### (8) class_data_bits_t
 class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
-**class_rw_t 结构如下**：
+**class_rw_t 结构如下：**
 ```
 struct class_rw_t {
     // Be warned that Symbolication knows the layout of this structure.
@@ -144,7 +141,7 @@ struct class_rw_t {
 
 ```
 
-**class_ro_t 储存了类的初始信息，不包括分类和后来动态添加的内容。class_ro_t 关键代码如下**
+**class_ro_t 储存了类的初始信息，不包括分类和后来动态添加的内容。class_ro_t 关键代码如下：**
 ```
 struct class_ro_t {
     uint32_t flags;
@@ -170,7 +167,7 @@ struct class_ro_t {
 }
 
 ```
-**method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下**：
+**method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下：**
 ```
 struct method_t {
     SEL name;               // 函数名
@@ -178,7 +175,7 @@ struct method_t {
     MethodListIMP imp;      // 方法的实现 (指向函数的指针)
 }
 ```
-**ivar_list_t 数组包含了多个 ivar_t 类型的结构体 ivar，ivar_t 结构如下**
+**ivar_list_t 数组包含了多个 ivar_t 类型的结构体 ivar，ivar_t 结构如下：**
 
 ```
 struct ivar_t {
@@ -195,7 +192,7 @@ struct ivar_t {
     }
 }
 ```
-**property_list_t 数组包含多个 property_t，property_t 结构如下**
+**property_list_t 数组包含多个 property_t，property_t 结构如下：**
 ```
 struct property_t {
     const char *name;             
@@ -277,7 +274,8 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
   Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
 
 **SEL:**
-Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址( int 类型的地址)：这个标识就是 SEL，其结构如下：
+Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址
+( int 类型的地址)：这个标识就是 SEL，其结构如下：
 
 ```
 	typedef struct objc_selector *SEL
