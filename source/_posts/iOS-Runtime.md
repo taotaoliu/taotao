@@ -124,7 +124,7 @@ struct bucket_t {
 #### (8) class_data_bits_t
 class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
-**class_rw_t 结构如下：**
+**class_rw_t** 结构如下：
 ```
 struct class_rw_t {
     // Be warned that Symbolication knows the layout of this structure.
@@ -141,7 +141,7 @@ struct class_rw_t {
 
 ```
 
-**class_ro_t 储存了类的初始信息，不包括分类和后来动态添加的内容。class_ro_t 关键代码如下：**
+**class_ro_t** 储存了类的初始信息，不包括分类和后来动态添加的内容。class_ro_t 关键代码如下：
 ```
 struct class_ro_t {
     uint32_t flags;
@@ -167,7 +167,7 @@ struct class_ro_t {
 }
 
 ```
-**method_list_t 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下：**
+**method_list_t** 数组包含了多个 method_t，其中 method_t 也是结构体 ，其关键结构如下：
 ```
 struct method_t {
     SEL name;               // 函数名
@@ -175,7 +175,7 @@ struct method_t {
     MethodListIMP imp;      // 方法的实现 (指向函数的指针)
 }
 ```
-**ivar_list_t 数组包含了多个 ivar_t 类型的结构体 ivar，ivar_t 结构如下：**
+**ivar_list_t** 数组包含了多个 ivar_t 类型的结构体 ivar，ivar_t 结构如下：
 
 ```
 struct ivar_t {
@@ -192,7 +192,7 @@ struct ivar_t {
     }
 }
 ```
-**property_list_t 数组包含多个 property_t，property_t 结构如下：**
+**property_list_t** 数组包含多个 property_t，property_t 结构如下：
 ```
 struct property_t {
     const char *name;             
@@ -267,8 +267,9 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 ```
 
 #### (5) 相关示例代码：
-
-
+```
+	// TODO：贴代码
+```
 ### 5. 消息与消息转发
 #### (1) Method 基础数据结构：
   Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
@@ -293,7 +294,114 @@ Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数
 **SEL 和 IMP 为映射关系：**SEL 通过 Dispatch table 表寻找到对应的 IMP， Dispatch table 表存放 SEL 和 IMP 的映射。我们可以对一个编号 (SEL) 和什么方法 (IMP) 映射做些操作，也就是说我们可以一个 SEL 指向不同的函数指针，这样就可以完成一个方法名在不同时候执行不同的函数体。
 #### (2) 相关操作方法：
 ```
+	// 调用指定方法的实现，返回的是方法实现时的返回，参数 receiver 不能为空，这个比 method_getImplementation 和 method_getName 速度快
+	void method_invoke_stret ( id receiver, Method m, ... )
 
+	// 调用返回一个数据结构的方法的实现              
+	id method_invoke ( id receiver, Method m, ... )           
+
+	// 获取方法名，希望获得方法名的 C 字符串，使用 sel_getName(method_getName(method))          
+	SEL method_getName ( Method m )                   
+
+	// 返回方法的实现                  
+	IMP method_getImplementation ( Method m )    
+
+	// 获取描述方法参数和返回值类型的字符串                        
+	const char * method_getTypeEncoding ( Method m )    
+
+	// 获取方法的返回值类型的字符串                 
+	char * method_copyReturnType ( Method m )         
+
+	// 获取方法的指定位置参数的类型字符串                    
+	char * method_copyArgumentType ( Method m, unsigned int index )      
+
+	// 通过引用返回方法的返回值类型字符串
+	void method_getReturnType ( Method m, char *dst, size_t dst_len )    
+
+	// 返回方法的参数的个数
+	unsigned int method_getNumberOfArguments ( Method m )               
+
+	// 通过引用返回方法指定位置参数的类型字符串
+	void method_getArgumentType ( Method m, unsigned int index, char *dst, size_t dst_len )
+
+	// 返回指定方法的方法描述结构体
+	struct objc_method_description * method_getDescription ( Method m )  
+
+	// 设置方法的实现
+	IMP method_setImplementation ( Method m, IMP imp )           
+
+	// 交换两个方法的实现
+	void method_exchangeImplementations ( Method m1, Method m2 )     
+
+	// 返回给定选择器指定的方法的名称    
+	const char * sel_getName ( SEL sel )          
+
+	// 返回 Runtime 系统中注册的方法，方法名映射的选择器                       
+	SEL sel_registerName ( const char *str )                             
+
+	// Runtime 系统中注册一个方法
+	SEL sel_getUid ( const char *str )           
+
+	// 比较两个选择器                        
+	BOOL sel_isEqual ( SEL lhs, SEL rhs )                               
 ```
+#### (3) 相关操作代码示例：
+```
+	// TODO：贴代码
+```
+#### (4) Method 调用流程：
+**objc_msgSend 函数：** 这个函数将消息接收者和方法名作为基础参数。消息发送给一个对象时，objc_msgSend 通过对象的 isa 指针获得类的结构体，先在 Cache 里找，找到就执行，没找到就在分发列表里查找方法的 selector，没找到就通过 objc_msgSend 结构体中指向父类的指针找到父类，然后在父类分发列表找，直到 root class（NSObject）。Objc 中发送消息是用中括号把接收者和消息括起来，只到运行时才会把消息和方法实现绑定。为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。
+objc_msgSend 定义如下：
+```
+	objc_msgSend(receiver, selector, arg1, arg2, ...)
+```
+objc_msgSend 内部实现大致流程：首先在 Class 中的缓存查找 imp（没缓存则初始化缓存），如果没找到就去父类的 Class 查找，如果一直查到到根类仍旧没有实现，则用 *_objc_msgForward* 函数指针代替 imp， 最后执行 imp。 *_objc_msgForward*  是用于消息转发的，当方法没有被寻找到的时候，就会触发消息转发流程。
+
+**消息转发流程：**当一个对象能接收一个消息时，就会走正常的方法调用流程。但如果一个对象无法接收指定消息，如果是以 [receiver message] 的方式调用方法，那么如果 receiver 无法响应 message 消息时，编译器就会报错。但如果是 perform... 的形式来调用，则需要等到运行时才能确定 receiver 是否能接受 message 消息。如果不能，则程序崩溃。消息转发的流程，可以分为三个阶段: 方法解析、重定向、消息转发。
+
+*tips:* 通常，当不能确定一个对象是否能接收某个消息时，会先调用 respondsToSelector: 来判断一下：
+```
+if ([self respondsToSelector:@selector(method)]) {
+    [self performSelector:@selector(method)];
+}
+```
+**方法解析：**当 runtime 在方法缓存列表和方法分发列表（包括超类）中找不到要执行的方法时，首先会进入方法解析阶段，此时可以在方法解析中动态添加方法实现。具体操作的函数如下：
+```
+	// 实例方法找不到实现的情况，可以在方法解析中动态添加方法实现
+	+ (BOOL)resolveInstanceMethod:(SEL)sel     
+
+	//类方法找不到实现的情况，可以在方法解析中动态添加方法实现
+	+ (BOOL)resolveClassMethod:(SEL)sel
+
+	//动态添加一个方法，Class cls 是要指定的类，runtime 会到这个类中去找方法， SEL name 是要解析的方法，IMP 是动态添加的方法实现的 imp ，const char *types : 类型编码，是个字符串
+	class_addMethod(Class cls, SEL name, IMP imp, const char *types)      
+```
+[类型编码文档](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100-SW1)
+
+**重定向：**在消息转发机制执行前，系统会再给我们一次偷梁换柱的机会通过重载 *forwardingTargetForSelector* 方法替换消息的接受者为其他对象，毕竟消息转发需要耗费更多的时间，如果此方法返回 nil 或是 self，则会进入消息转发阶段。但是替换的对象千万不要是 self，那样会进入死循环。
+```
+- (id)forwardingTargetForSelector:(SEL)aSelector {
+    if (aSelector == @selector(mysteriousMethod:)) {
+       return alternateObject;
+    }
+    return [super forwardingTargetForSelector:aSelector];
+}
+```
+**消息转发：**
+如果以上两种都没法处理未知消息就需要完整消息转发了，调用如下方法：
+``` 
+	//这一步是最后机会将消息转发给其它对象，对象会将未处理的消息相关的 selector，target 和参数都封装在 anInvocation 中。forwardInvocation :像未知消息分发中心，将未知消息转发给其它对象。注意的是 forwardInvocation: 方法只有在消息接收对象无法正常响应消息时才被调用。
+	- (void)forwardInvocation:(NSInvocation *)anInvocation
+
+	//必须重写这个方法，消息转发使用这个方法获得的信息创建 NSInvocation 对象。
+	- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
+```
+[消息转发更详细资料](http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/)
+
+#### (5) Method Swizzling：
+
+### 6. Category 和 Protocol
+
+### 7. Runtime 的应用
 
 ## Swift Runtime
