@@ -399,8 +399,92 @@ if ([self respondsToSelector:@selector(method)]) {
 [消息转发更详细资料](http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/)
 
 #### (5) Method Swizzling：
+Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现，实现 Hook 功能，是一种比子类化更加灵活的“重写”方法的方式。讲 Method 结构的时候提到过：原则上方法的名称 name 和方法的实现 imp 是一一对应的，而 Method Swizzling 的原理就是动态地改变它们的对应关系，达到替换方法实现的目的，如下代码实现了 NSArray 异常操作的崩溃拦截功能：
+```
+#import "NSArray+SafeArray.h"
+#import <objc/runtime.h>
 
+/** 
+ 在 iOS 中 NSNumber、NSArray、NSDictionary 等这些类都是类簇，一个 NSArray 的实现可能由多个类组成。所以如果想对 NSArray 进行 Swizzling，必须获取到其“真身”进行 Swizzling，直接对 NSArray 进行操作是无效的。
+ 
+ 下面列举了 NSArray 和 NSDictionary 本类的类名，可以通过Runtime函数取出本类。
+ NSArray                __NSArrayI
+ NSMutableArray         __NSArrayM
+ NSDictionary           __NSDictionaryI
+ NSMutableDictionary	__NSDictionaryM
+ */
+
+@implementation NSArray (SafeArray)
+
+// 注意下面的load方法中，不应该调用父类的load方法
++ (void)load {
+    Method fromMethod = class_getInstanceMethod(objc_getClass("__NSArrayI"), @selector(objectAtIndex:));
+    Method toMethod = class_getInstanceMethod(objc_getClass("__NSArrayI"), @selector(safe_objectAtIndex:));
+    method_exchangeImplementations(fromMethod, toMethod);
+}
+
+// 为了避免和系统的方法冲突在 swizzling 方法前面加前缀
+- (id)safe_objectAtIndex:(NSUInteger)index {
+    if (self.count-1 < index) {
+        // 如果越界就进入异常拦截
+        @try {
+            return [self safe_objectAtIndex:index];
+        }
+        @catch (NSException *exception) {
+            // 崩溃后收集日志
+            NSLog(@"---------- %s Crash Because Method %s  ----------\n", class_getName(self.class), __func__);
+            NSLog(@"%@", [exception callStackSymbols]);
+            return nil;
+        }
+        @finally {}
+    } else {
+        // 如果没有问题，则正常进行方法调用
+        return [self safe_objectAtIndex:index];
+    }
+}
+@end
+
+```
+**使用 Method Swizzling 注意的点：**
+**1）在 +load 方法中实现 Method Swizzling 的逻辑而不是在 +initialize ：**
++load 和 +initialize 是 Objective-C runtime 会自动调用的两个类方法，但是它们的调用时机是不一样的。+load 方法是在类被加载的时候调用的，而 +initialize 方法是在类或它的子类收到第一条消息之前被调用的，这里所指的消息包括实例方法和类方法调用。也就是说 +initialize 方法是以懒加载的方式被调用的，如果程序一直没有给某个类或它的子类发送消息，那么这个类的 +initialize 方法是永远不会被调用的。此外 +load 方法还有一个非常重要的特性，那就是子类、父类和分类中的 +load 方法的实现是被区别对待的。也就是说在 Objective-C runtime 自动调用 +load 方法时，分类中的 +load 方法并不会对主类中的 +load 方法造成覆盖。所以在 +load 方法是实现 Method Swizzling 逻辑是最佳选择。
+**2）用 dispatch_once 来进行调度：**
++load 方法在类加载的时候会被 runtime 自动调用一次，但是它并没有限制程序员对 +load 方法的手动调用，所以使用 dispatch_once 确保代码不管有多少线程都只被执行一次。
+**3）需要调用 class_addMethod 方法，并且以它的结果为依据分别处理两种不同的情况：**
+使用 Method Swizzling 的目的通常都是为了给程序增加功能，而不是完全替换某个功能，所以我们一般都需要在自定义的实现中调用原始的实现，所以这里就会有两种情况需要我们分别进行处理：
+*第一种情况：*主类本身有实现需要替换的方法，也就是 class_addMethod 方法返回 NO 时，直接交换两个方法的实现就可以了。
+*第二种情况：*主类本身没有实现需要替换的方法，而是继承了父类的实现，即 class_addMethod 方法返回 YES。这时调用 class_getInstanceMethod 函数获取到的 originalSelector 指向的就是父类的方法，我们再通过执行 lass_replaceMethod(class, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod)); 将父类的实现替换到我们自定义的方法中，这样就达到了在自定义方法的实现中调用父类实现的目的。
+**4）Selector，Method 和 Implementation 的关系：**
+一个类维护一个运行时可接收的消息分发表，分发表中每个入口是一个 Method，其中 key 是一个特定的名称即 SEL，与其对应的实现是 IMP 即指向底层 C 函数的指针。
 ### 6. Category 和 Protocol
+#### (1) Category 数据结构：
+```
+struct category_t {
+    const char *name; 
+    classref_t cls;
+    struct method_list_t *instanceMethods;         // 实例方法列表
+    struct method_list_t *classMethods;            // 类方法列表，Meta Class方法列表的子集
+    struct protocol_list_t *protocols;             // 分类所实现的协议列表
+    struct property_list_t *instanceProperties;    
+    // Fields below this point are not always present on disk.
+    struct property_list_t *_classProperties;      
+
+    method_list_t *methodsForMeta(bool isMeta) {
+        if (isMeta) return classMethods;
+        else return instanceMethods;
+    }
+
+    property_list_t *propertiesForMeta(bool isMeta, struct header_info *hi);
+};
+```
+#### (2) Category 的用途：
+ 1) 给现有的类添加方法；
+    2) 将一个类的实现拆分成多个独立的源文件；
+    3) 声明私有的方法
+    
+*Tips:* Category 有一个非常容易误用的场景，那就是用 Category 来覆写父类或主类的方法。虽然目前 Objective-C 是允许这么做的，但是这种使用场景是非常不推荐的。使用 Category 来覆写方法有很多缺点，比如不能覆写 Category 中的方法、无法调用主类中的原始实现等，且很容易造成无法预估的行为。 
+#### (3) Category 的实现原理：
+
 
 ### 7. Runtime 的应用
 
