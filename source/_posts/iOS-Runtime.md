@@ -274,15 +274,13 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 #### (1) Method 基础数据结构：
   Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
 
-**SEL:**
-Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址
+**SEL：**Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址
 ( int 类型的地址)：这个标识就是 SEL，其结构如下：
 
 ```
 	typedef struct objc_selector *SEL
 ```
-**IMP：**
-是一个函数指针，指向方法实现的地址。其结构如下：
+**IMP：**是一个函数指针，指向方法实现的地址。其结构如下：
 ```
 	/// A pointer to the function of a method implementation. 
 	#if !OBJC_OLD_DISPATCH_PROTOTYPES
@@ -446,16 +444,28 @@ Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现�
 
 ```
 **使用 Method Swizzling 注意的点：**
+
 **1）在 +load 方法中实现 Method Swizzling 的逻辑而不是在 +initialize ：**
+
 +load 和 +initialize 是 Objective-C runtime 会自动调用的两个类方法，但是它们的调用时机是不一样的。+load 方法是在类被加载的时候调用的，而 +initialize 方法是在类或它的子类收到第一条消息之前被调用的，这里所指的消息包括实例方法和类方法调用。也就是说 +initialize 方法是以懒加载的方式被调用的，如果程序一直没有给某个类或它的子类发送消息，那么这个类的 +initialize 方法是永远不会被调用的。此外 +load 方法还有一个非常重要的特性，那就是子类、父类和分类中的 +load 方法的实现是被区别对待的。也就是说在 Objective-C runtime 自动调用 +load 方法时，分类中的 +load 方法并不会对主类中的 +load 方法造成覆盖。所以在 +load 方法是实现 Method Swizzling 逻辑是最佳选择。
+
 **2）用 dispatch_once 来进行调度：**
+
 +load 方法在类加载的时候会被 runtime 自动调用一次，但是它并没有限制程序员对 +load 方法的手动调用，所以使用 dispatch_once 确保代码不管有多少线程都只被执行一次。
+
 **3）需要调用 class_addMethod 方法，并且以它的结果为依据分别处理两种不同的情况：**
+
 使用 Method Swizzling 的目的通常都是为了给程序增加功能，而不是完全替换某个功能，所以我们一般都需要在自定义的实现中调用原始的实现，所以这里就会有两种情况需要我们分别进行处理：
+
 *第一种情况：*主类本身有实现需要替换的方法，也就是 class_addMethod 方法返回 NO 时，直接交换两个方法的实现就可以了。
+
 *第二种情况：*主类本身没有实现需要替换的方法，而是继承了父类的实现，即 class_addMethod 方法返回 YES。这时调用 class_getInstanceMethod 函数获取到的 originalSelector 指向的就是父类的方法，我们再通过执行 lass_replaceMethod(class, swizzledSelector, method_getImplementation(originalMethod), method_getTypeEncoding(originalMethod)); 将父类的实现替换到我们自定义的方法中，这样就达到了在自定义方法的实现中调用父类实现的目的。
+
 **4）Selector，Method 和 Implementation 的关系：**
+
 一个类维护一个运行时可接收的消息分发表，分发表中每个入口是一个 Method，其中 key 是一个特定的名称即 SEL，与其对应的实现是 IMP 即指向底层 C 函数的指针。
+
+[Runtime Method Swizzling 开发实例汇总](https://juejin.im/entry/584912648e450a006c4be90a)
 ### 6. Category 和 Protocol
 #### (1) Category 数据结构：
 ```
@@ -478,14 +488,317 @@ struct category_t {
 };
 ```
 #### (2) Category 的用途：
- 1) 给现有的类添加方法；
-    2) 将一个类的实现拆分成多个独立的源文件；
-    3) 声明私有的方法
-    
-*Tips:* Category 有一个非常容易误用的场景，那就是用 Category 来覆写父类或主类的方法。虽然目前 Objective-C 是允许这么做的，但是这种使用场景是非常不推荐的。使用 Category 来覆写方法有很多缺点，比如不能覆写 Category 中的方法、无法调用主类中的原始实现等，且很容易造成无法预估的行为。 
-#### (3) Category 的实现原理：
 
+ 1) 给现有的类添加方法
+
+ 2) 将一个类的实现拆分成多个独立的源文件
+
+ 3) 声明私有的方法
+
+*注意:* Category 有一个非常容易误用的场景，那就是用 Category 来覆写父类或主类的方法。虽然目前 Objective-C 是允许这么做的，但是这种使用场景是非常不推荐的。使用 Category 来覆写方法有很多缺点，比如不能覆写 Category 中的方法、无法调用主类中的原始实现等，且很容易造成无法预估的行为。 
+#### (3) Category 的实现原理：
+1）在编译时期，会将 Category 中实现的方法生成一个结构体 method_list_t ，将声明的属性生成一个结构体 property_list_t ，然后通过这些结构体生成一个结构体 category_t 并保存。
+
+2）在运行时期，Runtime 会拿到编译时期我们保存下来的结构体 category_t 然后将结构体 category_t 中的实例方法列表、协议列表、属性列表添加到主类中。
+
+3）将结构体 category_t 中的类方法列表、协议列表添加到主类的 metaClass 中。
+
+*注意点(1)：*category_t 中的方法列表是插入到主类的方法列表前面，所以这里 Category 中实现的方法并不会真正的覆盖掉主类中的方法，只是将 Category 的方法插到方法列表的前面去了，运行时在查找方法的时候是顺着方法列表的顺序查找的，它只要一找到对应名字的方法，就会停止查找，即会出现覆盖方法的这种假象了。
+
+*注意点(2)：*Category 添加实例变量，因为在运行期，对象的内存布局已经确定，如果添加实例变量就会破坏类的内部布局。
+
+关键代码在 objc-runtime-new.mm 中的 _read_images 方法中实现，如下：
+```
+/***********************************************************************
+* _read_images
+* Perform initial processing of the headers in the linked 
+* list beginning with headerList. 
+*
+* Called by: map_images_nolock
+*
+* Locking: runtimeLock acquired by map_images
+**********************************************************************/
+void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int unoptimizedTotalClasses)
+{
+    header_info *hi;
+    uint32_t hIndex;
+    size_t count;
+    size_t i;
+    Class *resolvedFutureClasses = nil;
+    size_t resolvedFutureClassCount = 0;
+    static bool doneOnce;
+    TimeLogger ts(PrintImageTimes);
+
+    runtimeLock.assertLocked();
+
+#define EACH_HEADER \
+    hIndex = 0;         \
+    hIndex < hCount && (hi = hList[hIndex]); \
+    hIndex++
+
+    if (!doneOnce) {
+        doneOnce = YES;
+
+        if (DisableTaggedPointers) {
+            disableTaggedPointers();
+        }
+        
+        initializeTaggedPointerObfuscator();
+
+        if (PrintConnecting) {
+            _objc_inform("CLASS: found %d classes during launch", totalClasses);
+        }
+
+        // namedClasses
+        // Preoptimized classes don't go in this table.
+        // 4/3 is NXMapTable's load factor
+        int namedClassesSize = 
+            (isPreoptimized() ? unoptimizedTotalClasses : totalClasses) * 4 / 3;
+        gdb_objc_realized_classes =
+            NXCreateMapTable(NXStrValueMapPrototype, namedClassesSize);
+        
+        allocatedClasses = NXCreateHashTable(NXPtrPrototype, 0, nil);
+        
+        ts.log("IMAGE TIMES: first time tasks");
+    }
+
+    // Discover categories. 
+    for (EACH_HEADER) {
+        category_t **catlist = 
+            _getObjc2CategoryList(hi, &count);
+        bool hasClassProperties = hi->info()->hasCategoryClassProperties();
+
+        for (i = 0; i < count; i++) {
+            category_t *cat = catlist[i];
+            Class cls = remapClass(cat->cls);
+
+            if (!cls) {
+                // Category's target class is missing (probably weak-linked).
+                // Disavow any knowledge of this category.
+                catlist[i] = nil;
+                if (PrintConnecting) {
+                    _objc_inform("CLASS: IGNORING category \?\?\?(%s) %p with "
+                                 "missing weak-linked target class", 
+                                 cat->name, cat);
+                }
+                continue;
+            }
+
+            // Process this category. 
+            // First, register the category with its target class. 
+            // Then, rebuild the class's method lists (etc) if 
+            // the class is realized. 
+            bool classExists = NO;
+            if (cat->instanceMethods ||  cat->protocols  
+                ||  cat->instanceProperties) 
+            {
+                addUnattachedCategoryForClass(cat, cls, hi);
+                if (cls->isRealized()) {
+                    remethodizeClass(cls);
+                    classExists = YES;
+                }
+                if (PrintConnecting) {
+                    _objc_inform("CLASS: found category -%s(%s) %s", 
+                                 cls->nameForLogging(), cat->name, 
+                                 classExists ? "on existing class" : "");
+                }
+            }
+
+            if (cat->classMethods  ||  cat->protocols  
+                ||  (hasClassProperties && cat->_classProperties)) 
+            {
+                addUnattachedCategoryForClass(cat, cls->ISA(), hi);
+                if (cls->ISA()->isRealized()) {
+                    remethodizeClass(cls->ISA());
+                }
+                if (PrintConnecting) {
+                    _objc_inform("CLASS: found category +%s(%s)", 
+                                 cls->nameForLogging(), cat->name);
+                }
+            }
+        }
+    }
+
+    ts.log("IMAGE TIMES: discover categories");
+#undef EACH_HEADER
+}
+```
+上面代码主要完成了一下以下几件事：
+
+1）将 Category 和它的主类（或元类）注册到哈希表中
+
+2）如果主类（或元类）已实现，那么重建它的方法列表
+
+3）Category 中的实例方法和属性被整合到主类中；而类方法则被整合到元类中
+
+4）对协议的处理比较特殊，Category 中的协议被同时整合到了主类和元类中
+
+上述代码中通过 static void remethodizeClass(Class cls) 函数来重新整理类的数据结构，代码如下：
+```
+static void remethodizeClass(Class cls)
+{
+    category_list *cats;
+    bool isMeta;
+
+    runtimeLock.assertLocked();
+
+    isMeta = cls->isMetaClass();
+
+    // Re-methodizing: check for more categories
+    if ((cats = unattachedCategoriesForClass(cls, false/*not realizing*/))) {
+        if (PrintConnecting) {
+            _objc_inform("CLASS: attaching categories to class '%s' %s", 
+                         cls->nameForLogging(), isMeta ? "(meta)" : "");
+        }
+        
+        attachCategories(cls, cats, true /*flush caches*/);        
+        free(cats);
+    }
+}
+```
+这个函数的主要作用是将 Category 中的方法、属性和协议整合到类（主类或元类）中，更新类的数据字段 data() 中 method_lists（或 method_list）、properties 和 protocols 的值。上述代码中真正处理 Category 的方法是 attachCategories 方法，源码如下：
+```
+// Attach method lists and properties and protocols from categories to a class.
+// Assumes the categories in cats are all loaded and sorted by load order, 
+// oldest categories first.
+static void 
+attachCategories(Class cls, category_list *cats, bool flush_caches)
+{
+    if (!cats) return;
+    if (PrintReplacedMethods) printReplacements(cls, cats);
+
+    bool isMeta = cls->isMetaClass();
+
+    // fixme rearrange to remove these intermediate allocations
+    method_list_t **mlists = (method_list_t **)
+        malloc(cats->count * sizeof(*mlists));
+    property_list_t **proplists = (property_list_t **)
+        malloc(cats->count * sizeof(*proplists));
+    protocol_list_t **protolists = (protocol_list_t **)
+        malloc(cats->count * sizeof(*protolists));
+
+    // Count backwards through cats to get newest categories first
+    int mcount = 0;
+    int propcount = 0;
+    int protocount = 0;
+    int i = cats->count;
+    bool fromBundle = NO;
+    while (i--) {
+        auto& entry = cats->list[i];
+
+        method_list_t *mlist = entry.cat->methodsForMeta(isMeta);
+        if (mlist) {
+            mlists[mcount++] = mlist;
+            fromBundle |= entry.hi->isBundle();
+        }
+
+        property_list_t *proplist = 
+            entry.cat->propertiesForMeta(isMeta, entry.hi);
+        if (proplist) {
+            proplists[propcount++] = proplist;
+        }
+
+        protocol_list_t *protolist = entry.cat->protocols;
+        if (protolist) {
+            protolists[protocount++] = protolist;
+        }
+    }
+
+    auto rw = cls->data();
+
+    prepareMethodLists(cls, mlists, mcount, NO, fromBundle);
+    rw->methods.attachLists(mlists, mcount);
+    free(mlists);
+    if (flush_caches  &&  mcount > 0) flushCaches(cls);
+
+    rw->properties.attachLists(proplists, propcount);
+    free(proplists);
+
+    rw->protocols.attachLists(protolists, protocount);
+    free(protolists);
+}
+```
+#### (4) ：Protocol
+Protocol 结构如下：
+```
+typedef uintptr_t protocol_ref_t;  // protocol_t *, but unremapped
+```
+protocol_ref_t 指向 protocol_t，而 protocol_t 继承自 objc_object，所以 Protocol 是对象结构体，protocol_t 关键结构如下：
+```
+struct protocol_t : objc_object {
+    const char *mangledName;
+    struct protocol_list_t *protocols;
+    method_list_t *instanceMethods;
+    method_list_t *classMethods;
+    method_list_t *optionalInstanceMethods;
+    method_list_t *optionalClassMethods;
+    property_list_t *instanceProperties;
+    uint32_t size;   // sizeof(protocol_t)
+    uint32_t flags;
+    // Fields below this point are not always present on disk.
+    const char **_extendedMethodTypes;
+    const char *_demangledName;
+    property_list_t *_classProperties;
+}
+```
+
+#### (5) ：Category 和 Protocol 的操作方法
+```
+// 返回指定的协议
+Protocol * objc_getProtocol ( const char *name );
+
+// 获取运行时所知道的所有协议的数组
+Protocol ** objc_copyProtocolList ( unsigned int *outCount );
+
+// 创建新的协议实例
+Protocol * objc_allocateProtocol ( const char *name );
+
+// 在运行时中注册新创建的协议，创建一个新协议后必须使用这个进行注册这个新协议，但是注册后不能够再修改和添加新方法。
+void objc_registerProtocol ( Protocol *proto ); 
+
+// 为协议添加方法
+void protocol_addMethodDescription ( Protocol *proto, SEL name, const char *types, BOOL isRequiredMethod, BOOL isInstanceMethod );
+
+// 添加一个已注册的协议到协议中
+void protocol_addProtocol ( Protocol *proto, Protocol *addition );
+
+// 为协议添加属性
+void protocol_addProperty ( Protocol *proto, const char *name, const objc_property_attribute_t *attributes, unsigned int attributeCount, BOOL isRequiredProperty, BOOL isInstanceProperty );
+
+// 返回协议名
+const char * protocol_getName ( Protocol *p );
+
+// 测试两个协议是否相等
+BOOL protocol_isEqual ( Protocol *proto, Protocol *other );
+
+// 获取协议中指定条件的方法的方法描述数组
+struct objc_method_description * protocol_copyMethodDescriptionList ( Protocol *p, BOOL isRequiredMethod, BOOL isInstanceMethod, unsigned int *outCount );
+
+// 获取协议中指定方法的方法描述
+struct objc_method_description protocol_getMethodDescription ( Protocol *p, SEL aSel, BOOL isRequiredMethod, BOOL isInstanceMethod );
+
+// 获取协议中的属性列表
+objc_property_t * protocol_copyPropertyList ( Protocol *proto, unsigned int *outCount );
+
+// 获取协议的指定属性
+objc_property_t protocol_getProperty ( Protocol *proto, const char *name, BOOL isRequiredProperty, BOOL isInstanceProperty );
+
+// 获取协议采用的协议
+Protocol ** protocol_copyProtocolList ( Protocol *proto, unsigned int *outCount );
+
+// 查看协议是否采用了另一个协议
+BOOL protocol_conformsToProtocol ( Protocol *proto, Protocol *other );
+```
+#### (6) ：Category 和 Protocol 的操作示例
+```
+//贴代码
+```
 
 ### 7. Runtime 的应用
+**(1) 利用 Method Swizzling 特性实现用户行为收集，预防数组字典越界奔溃， 代码解耦等**
+
+**(2) 获取系统提供的库相关信息**
+
+**(3) 为类动态添加方法**
 
 ## Swift Runtime
