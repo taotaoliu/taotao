@@ -4,14 +4,16 @@ date: 2019-05-30 10:25:47
 tags: iOS
 ---
 
-## Objc Runtime
+Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo](https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo)
+# Objc Runtime
   源代码下载地址：[http://www.opensource.apple.com/source/objc4/](http://www.opensource.apple.com/source/objc4/)
 
   Runtime 函数文档: [https://developer.apple.com/documentation/objectivec/objective-c_runtime](https://developer.apple.com/documentation/objectivec/objective-c_runtime)
 
   苹果官方 Runtime 编程指南：
   [https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048)
-### 1. 概念
+
+## 1. 概念
  Objective-C 是一门动态语言，它将很多静态语言在编译和链接时做的事情推迟到运行时来处理。
 
  这种动态特性意味着 Objective-C 不仅需要一个编译器，还需要一个运行时系统来执行编译的代码。
@@ -21,13 +23,13 @@ tags: iOS
 
 **Objc Runtime 使得 C 具有了面向对象能力，可以在程序运行时创建、检查、修改类、对象和它们的方法**。
 
-### 2. Runtime 的作用：
-#### (1) 封装
+## 2. Runtime 的作用：
+### (1) 封装
  Runtime 库中，对象可以用 C 语言中的结构体表示，而方法可以用 C 函数来实现，再加上了一些其他的特性。这些结构体和函数被 runtime 函数封装后，就可以在程序运行时创建、检查、修改类、对象和它们的方法了。
-#### (2) 找到方法的最终执行代码
+### (2) 找到方法的最终执行代码
  当程序中执行 [receiver message] 时，会向消息接收者（receiver）发送一条消息 message，runtime 会根据消息接收者是否能响应该消息而做出不同的反应，即消息转发的流程。
-### 3. 类和对象（Class 和 Object）相关的基本数据结构
-#### (1) 关键词：
+## 3. 类和对象（Class 和 Object）相关的基本数据结构
+### (1) 关键词：
  Class：指向了 objc_class 结构体的指针 
 	id：参数类型，指向某个类实例的指针 
 	Method：代表了类中的某个方法的类型
@@ -37,12 +39,12 @@ tags: iOS
 	Property：属性存储器
 	Cache：方法调用的缓存器，为方法调用的性能进行优化
 
-#### (2) objc_class 和 objc_object 数据结构：
+### (2) objc_class 和 objc_object 数据结构：
 ```
 typedef struct objc_class *Class;
 typedef struct objc_object *id;
 ```
-#### (3) objc_object 和 isa
+### (3) objc_object 和 isa
 objc_object 源代码在 objc-private.h line 75, 关键代码如下：
 ```
 struct objc_object {
@@ -72,7 +74,7 @@ struct {
     uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
 }
 ```
-#### (4) objc_class
+### (4) objc_class
 objc_class 源代码可在 objc-runtime-new.h line 1111 看到，由于 objc_class 继承自 objc_object， 所以其关键结构可简化如下:
 ```
 struct objc_class : objc_object {
@@ -90,7 +92,7 @@ objc_object 用来描述 OC 中的实例，当用口语描述实例时，总会�
 Objective-C 中的类本质上也是对象，称之为类对象，在 Objective-C 中有一个非常特殊的类 NSObject ，绝大部分的类都继承自它。它是 Objective-C 中的两个根类（rootclass）之一，另外一个是 NSProxy。
 NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会有这个成员变量。
 
-#### (5) 元类（metaclass），根类（root class），根元类（root metaclass）
+### (5) 元类（metaclass）、根类（root class）、根元类（root metaclass）
 本质上 Objective-C 中的类也是对象，它也是某个类的实例，这个类我们称之为元类（metaclass）。元类也是对象（元类对象），元类也是某个类的实例，这个类我们称之为根元类（root metaclass）。
 不过，有一点比较特殊，那就是所有的元类所属的类都是同一个根元类（当然根元类也是元类，所以它所属的类也是根元类，即它本身）。根元类指的就是根类的元类，具体来说就是根类 NSObject 对应的元类。
 
@@ -98,9 +100,9 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 
 下图是为类（class），元类（metaclass），根类（root class），根元类（root metaclass）关系
 ![](iOS-Runtime/object_model.png)
-#### (6) superclass
+### (6) superclass
 指向该类的父类，如果该类已经是最顶层的根类（如 NSObject 或 NSProxy），则 superclass 为 NULL。
-#### (7) cache_t
+### (7) cache_t
 cache_t 是一个散列表，用来缓存曾经调用过的方法，提高方法的查找速度。
 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
@@ -121,7 +123,7 @@ struct bucket_t {
 
 **occupied：**一个整数，指定实际占用的缓存 bucket 的总数。
 
-#### (8) class_data_bits_t
+### (8) class_data_bits_t
 class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
 **class_rw_t** 结构如下：
@@ -202,10 +204,10 @@ struct property_t {
 
 class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期就可以确定的，暂且称为元信息吧，在之后的逻辑中，它们显然是不希望被改变的；后续在用户层，无论是方法还是别的扩展，都是在 class_rw_t 上进行操作，这些操作都不会影响类的元信息。更多关于 class_rw_t 和 class_ro_t 的资料可查看 [这篇文章](https://zhangbuhuai.com/post/runtime.html)。
 
-### 4. 类和对象相关操作方法
+## 4. 类和对象相关操作方法
 操作类相关的函数一般以 class 为前缀，操作对象相关函数以 objc 或 object_ 为前缀。可在开篇 Runtime 函数文档查看相关方法。
 
-#### (1) 类相关操作函数	
+### (1) 类相关操作函数	
 ```
 	const char * class_getName ( Class cls )           // 获取类名
 
@@ -222,7 +224,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 ```
 
-#### (2) 成员变量 (ivars) 和属性相关操作函数
+### (2) 成员变量 (ivars) 和属性相关操作函数
 ```
 	Ivar class_getInstanceVariable ( Class cls, const char *name )                                           // 获取类中指定名称实例成员变量的信息
 
@@ -234,7 +236,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 
 ```
-#### (3) method 相关操作函数
+### (3) method 相关操作函数
 ```
 	BOOL class_addMethod ( Class cls, SEL name, IMP imp, const char *types )       // 添加方法，和成员变量不同的是可以为类动态添加方法。如果有同名会返回 NO，修改的话需要使用 method_setImplementation
 
@@ -255,7 +257,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 
 ```
-#### (4) protocol 相关操作函数
+### (4) protocol 相关操作函数
 ```
 	BOOL class_addProtocol ( Class cls, Protocol *protocol )                       // 添加协议
 
@@ -266,12 +268,214 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 ```
 
-#### (5) 相关示例代码：
+### (5) 相关示例代码及输出：
 ```
-	// TODO：贴代码
+ RuntimClass *runtimeClass = [[RuntimClass alloc] init];
+ Class cls = runtimeClass.class;
+
+ // 类名
+ const char *clsName = class_getName(cls);
+ NSLog(@"类名：%s", clsName);
+ NSLog(@"**********************************");
+ 
+ // 父类
+ Class superCls = class_getSuperclass(cls);
+ NSLog(@"父类名：%s", class_getName(superCls));
+ NSLog(@"**********************************");
+ 
+ // 元类
+ BOOL isMetaCls = class_isMetaClass(cls);
+ NSLog(@"%s %@元类", clsName, (isMetaCls ? @"是" : @"不是"));
+ NSLog(@"**********************************");
+ 
+ Class metaCls = objc_getMetaClass(class_getName(cls));
+ NSLog(@"%s的元类是：%s", clsName, class_getName(metaCls));
+ NSLog(@"**********************************");
+ 
+ // 变量实例大小
+ size_t instanceSize = class_getInstanceSize(cls);
+ NSLog(@"%s的所有实例变量大小：%zu",clsName ,instanceSize);
+ NSLog(@"**********************************");
+ 
+ // 成员变量
+ unsigned int outCount = 0;
+ Ivar *ivars = class_copyIvarList(cls, &outCount);
+ for (int i = 0; i < outCount; i++) {
+     Ivar ivar = ivars[i];
+     NSLog(@"成员变量%s在第%d的位置", ivar_getName(ivar), i);
+     NSLog(@"**********************************");
+ }
+ free(ivars);
+ 
+ Ivar ivar = class_getInstanceVariable(cls, "_array");
+ if (ivar != NULL) {
+     const char *ivarName = ivar_getName(ivar);
+     NSLog(@"成员变量：%s", ivarName);
+     NSLog(@"**********************************");
+ } else {
+     NSLog(@"没有此成员变量");
+     NSLog(@"**********************************");
+ }
+ 
+ // 属性
+ objc_property_t *properties = class_copyPropertyList(cls, &outCount);
+ for (int i = 0; i < outCount; i++) {
+     objc_property_t property = properties[i];
+     NSLog(@"属性名称: %s", property_getName(property));
+     NSLog(@"**********************************");
+ }
+ free(properties);
+ 
+ objc_property_t arrayProperty = class_getProperty(cls, "array");
+ if (arrayProperty != NULL) {
+     const char *arryPropertyName = property_getName(arrayProperty);
+     NSLog(@"属性%s", arryPropertyName);
+     NSLog(@"**********************************");
+ }
+ 
+ //方法
+ Method *methods = class_copyMethodList(cls, &outCount);   //包含category添加的方法
+ for (int i = 0; i < outCount; i++) {
+     Method method = methods[i];
+     SEL methodSignature = method_getName(method);
+     NSLog(@"方法签名: %s", methodSignature);
+     NSLog(@"**********************************");
+ }
+ free(methods);
+ 
+ Method method1 = class_getInstanceMethod(cls, @selector(method2));
+ if (method1 != NULL) {
+     SEL method1Signature = method_getName(method1);
+     NSLog(@"方法%s",method1Signature);
+     NSLog(@"**********************************");
+ } else {
+     NSLog(@"未找到此方法");
+     NSLog(@"**********************************");
+ }
+ 
+ Method classMethod = class_getClassMethod(cls, @selector(classMethod));
+ if (classMethod != NULL) {
+     SEL classMethodName = method_getName(classMethod);
+     NSLog(@"类方法 %s", classMethodName);
+     NSLog(@"**********************************");
+ }
+ 
+ BOOL responds = class_respondsToSelector(cls, @selector(method4WithArg1:arg2:));
+ if (responds) {
+     Method respondsMethod = class_getInstanceMethod(cls, @selector(method4WithArg1:arg2:));
+     SEL respondsMethodName = method_getName(respondsMethod);
+     NSLog(@"%s响应方法%s", clsName, respondsMethodName);
+     NSLog(@"**********************************");
+ } else {
+     NSLog(@"%s不响应此方法", clsName);
+     NSLog(@"**********************************");
+ }
+ 
+ IMP imp = class_getMethodImplementation(cls, @selector(method1));
+ imp();
+ NSLog(@"**********************************");
+ 
+ // 协议
+ Protocol __unsafe_unretained **protocols = class_copyProtocolList(cls, &outCount);
+ for (int i = 0; i < outCount; i++) {
+     Protocol * protocol = protocols[i];
+     const char *protocalName = protocol_getName(protocol);
+     NSLog(@"协议名称：%s", protocalName);
+     NSLog(@"**********************************");
+ }
+ Protocol * protocol = protocols[1];
+ BOOL conformProtocol = class_conformsToProtocol(cls, protocol);
+ NSLog(@"%s%@遵循协议%s", clsName, (conformProtocol ? @"" : @"不"), protocol_getName(protocol));
+ NSLog(@"**********************************");
+
+输出日志如下：
+
+2019-06-15 18:26:12.595856+0800 RuntimDemo[18732:16102829] 类名：RuntimClass
+2019-06-15 18:26:12.596386+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.596500+0800 RuntimDemo[18732:16102829] 父类名：NSObject
+2019-06-15 18:26:12.596584+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.596721+0800 RuntimDemo[18732:16102829] RuntimClass 不是元类
+2019-06-15 18:26:12.596798+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.596890+0800 RuntimDemo[18732:16102829] RuntimClass的元类是：RuntimClass
+2019-06-15 18:26:12.596966+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.597060+0800 RuntimDemo[18732:16102829] RuntimClass的所有实例变量大小：56
+2019-06-15 18:26:12.597136+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.597251+0800 RuntimDemo[18732:16102829] 成员变量firstInstance在第0的位置
+2019-06-15 18:26:12.597429+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.597622+0800 RuntimDemo[18732:16102829] 成员变量secondInstance在第1的位置
+2019-06-15 18:26:12.597803+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.601663+0800 RuntimDemo[18732:16102829] 成员变量thirdInstance在第2的位置
+2019-06-15 18:26:12.601739+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.601823+0800 RuntimDemo[18732:16102829] 成员变量_array在第3的位置
+2019-06-15 18:26:12.601888+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.601965+0800 RuntimDemo[18732:16102829] 成员变量_string在第4的位置
+2019-06-15 18:26:12.602033+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.602106+0800 RuntimDemo[18732:16102829] 成员变量_index在第5的位置
+2019-06-15 18:26:12.602168+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.602479+0800 RuntimDemo[18732:16102829] 成员变量：_array
+2019-06-15 18:26:12.602681+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.602908+0800 RuntimDemo[18732:16102829] 属性名称: array
+2019-06-15 18:26:12.603056+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.603266+0800 RuntimDemo[18732:16102829] 属性名称: string
+2019-06-15 18:26:12.603464+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.603662+0800 RuntimDemo[18732:16102829] 属性名称: index
+2019-06-15 18:26:12.603887+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.604116+0800 RuntimDemo[18732:16102829] 属性名称: hash
+2019-06-15 18:26:12.604339+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.604568+0800 RuntimDemo[18732:16102829] 属性名称: superclass
+2019-06-15 18:26:12.604777+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.604990+0800 RuntimDemo[18732:16102829] 属性名称: description
+2019-06-15 18:26:12.605190+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.605425+0800 RuntimDemo[18732:16102829] 属性名称: debugDescription
+2019-06-15 18:26:12.605645+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.605936+0800 RuntimDemo[18732:16102829] 属性array
+2019-06-15 18:26:12.606183+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.606395+0800 RuntimDemo[18732:16102829] 方法签名: method2
+2019-06-15 18:26:12.606628+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.606834+0800 RuntimDemo[18732:16102829] 方法签名: method4WithArg1:arg2:
+2019-06-15 18:26:12.607034+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.607246+0800 RuntimDemo[18732:16102829] 方法签名: method1
+2019-06-15 18:26:12.607447+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.607663+0800 RuntimDemo[18732:16102829] 方法签名: runtimeClassProtocol
+2019-06-15 18:26:12.607879+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.608107+0800 RuntimDemo[18732:16102829] 方法签名: method3
+2019-06-15 18:26:12.608328+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.608544+0800 RuntimDemo[18732:16102829] 方法签名: categoryMethod
+2019-06-15 18:26:12.608751+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.609075+0800 RuntimDemo[18732:16102829] 方法签名: setArray:
+2019-06-15 18:26:12.609301+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.609538+0800 RuntimDemo[18732:16102829] 方法签名: .cxx_destruct
+2019-06-15 18:26:12.609716+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.609900+0800 RuntimDemo[18732:16102829] 方法签名: array
+2019-06-15 18:26:12.610099+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.610279+0800 RuntimDemo[18732:16102829] 方法签名: setString:
+2019-06-15 18:26:12.610425+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.610653+0800 RuntimDemo[18732:16102829] 方法签名: string
+2019-06-15 18:26:12.610860+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.611082+0800 RuntimDemo[18732:16102829] 方法签名: index
+2019-06-15 18:26:12.611292+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.611517+0800 RuntimDemo[18732:16102829] 方法签名: setIndex:
+2019-06-15 18:26:12.611719+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.611945+0800 RuntimDemo[18732:16102829] 方法method2
+2019-06-15 18:26:12.612125+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.612359+0800 RuntimDemo[18732:16102829] 类方法 classMethod
+2019-06-15 18:26:12.612575+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.612797+0800 RuntimDemo[18732:16102829] RuntimClass响应方法method4WithArg1:arg2:
+2019-06-15 18:26:12.612966+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.613153+0800 RuntimDemo[18732:16102829] method1 被调用
+2019-06-15 18:26:12.613371+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.613612+0800 RuntimDemo[18732:16102829] 协议名称：RuntimeClassProtocol
+2019-06-15 18:26:12.613829+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.614063+0800 RuntimDemo[18732:16102829] 协议名称：NSCopying
+2019-06-15 18:26:12.614253+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.614446+0800 RuntimDemo[18732:16102829] 协议名称：NSCoding
+2019-06-15 18:26:12.614655+0800 RuntimDemo[18732:16102829] **********************************
+2019-06-15 18:26:12.614887+0800 RuntimDemo[18732:16102829] RuntimClass遵循协议NSCopying
+2019-06-15 18:26:12.615037+0800 RuntimDemo[18732:16102829] **********************************
 ```
-### 5. 消息与消息转发
-#### (1) Method 基础数据结构：
+
+## 5. 消息与消息转发
+### (1) Method 基础数据结构：
   Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
 
 **SEL：**Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址
@@ -290,7 +494,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 	#endif
 ```
 **SEL 和 IMP 为映射关系：**SEL 通过 Dispatch table 表寻找到对应的 IMP， Dispatch table 表存放 SEL 和 IMP 的映射。我们可以对一个编号 (SEL) 和什么方法 (IMP) 映射做些操作，也就是说我们可以一个 SEL 指向不同的函数指针，这样就可以完成一个方法名在不同时候执行不同的函数体。
-#### (2) 相关操作方法：
+### (2) 相关操作方法：
 ```
 	// 调用指定方法的实现，返回的是方法实现时的返回，参数 receiver 不能为空，这个比 method_getImplementation 和 method_getName 速度快
 	void method_invoke_stret ( id receiver, Method m, ... )
@@ -343,11 +547,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 	// 比较两个选择器                        
 	BOOL sel_isEqual ( SEL lhs, SEL rhs )                               
 ```
-#### (3) 相关操作代码示例：
-```
-	// TODO：贴代码
-```
-#### (4) Method 调用流程：
+### (4) Method 调用流程：
 **objc_msgSend 函数：** 这个函数将消息接收者和方法名作为基础参数。消息发送给一个对象时，objc_msgSend 通过对象的 isa 指针获得类的结构体，先在 Cache 里找，找到就执行，没找到就在分发列表里查找方法的 selector，没找到就通过 objc_msgSend 结构体中指向父类的指针找到父类，然后在父类分发列表找，直到 root class（NSObject）。Objc 中发送消息是用中括号把接收者和消息括起来，只到运行时才会把消息和方法实现绑定。为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。
 objc_msgSend 定义如下：
 ```
@@ -396,7 +596,7 @@ if ([self respondsToSelector:@selector(method)]) {
 ```
 [消息转发更详细资料](http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/)
 
-#### (5) Method Swizzling：
+### (5) Method Swizzling：
 Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现，实现 Hook 功能，是一种比子类化更加灵活的“重写”方法的方式。讲 Method 结构的时候提到过：原则上方法的名称 name 和方法的实现 imp 是一一对应的，而 Method Swizzling 的原理就是动态地改变它们的对应关系，达到替换方法实现的目的，如下代码实现了 NSArray 异常操作的崩溃拦截功能：
 ```
 #import "NSArray+SafeArray.h"
@@ -445,15 +645,15 @@ Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现�
 ```
 **使用 Method Swizzling 注意的点：**
 
-**1）在 +load 方法中实现 Method Swizzling 的逻辑而不是在 +initialize ：**
+**1 ）在 +load 方法中实现 Method Swizzling 的逻辑而不是在 +initialize ：**
 
 +load 和 +initialize 是 Objective-C runtime 会自动调用的两个类方法，但是它们的调用时机是不一样的。+load 方法是在类被加载的时候调用的，而 +initialize 方法是在类或它的子类收到第一条消息之前被调用的，这里所指的消息包括实例方法和类方法调用。也就是说 +initialize 方法是以懒加载的方式被调用的，如果程序一直没有给某个类或它的子类发送消息，那么这个类的 +initialize 方法是永远不会被调用的。此外 +load 方法还有一个非常重要的特性，那就是子类、父类和分类中的 +load 方法的实现是被区别对待的。也就是说在 Objective-C runtime 自动调用 +load 方法时，分类中的 +load 方法并不会对主类中的 +load 方法造成覆盖。所以在 +load 方法是实现 Method Swizzling 逻辑是最佳选择。
 
-**2）用 dispatch_once 来进行调度：**
+**2 ）用 dispatch_once 来进行调度：**
 
 +load 方法在类加载的时候会被 runtime 自动调用一次，但是它并没有限制程序员对 +load 方法的手动调用，所以使用 dispatch_once 确保代码不管有多少线程都只被执行一次。
 
-**3）需要调用 class_addMethod 方法，并且以它的结果为依据分别处理两种不同的情况：**
+**3 ）需要调用 class_addMethod 方法，并且以它的结果为依据分别处理两种不同的情况：**
 
 使用 Method Swizzling 的目的通常都是为了给程序增加功能，而不是完全替换某个功能，所以我们一般都需要在自定义的实现中调用原始的实现，所以这里就会有两种情况需要我们分别进行处理：
 
@@ -466,8 +666,8 @@ Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现�
 一个类维护一个运行时可接收的消息分发表，分发表中每个入口是一个 Method，其中 key 是一个特定的名称即 SEL，与其对应的实现是 IMP 即指向底层 C 函数的指针。
 
 [Runtime Method Swizzling 开发实例汇总](https://juejin.im/entry/584912648e450a006c4be90a)
-### 6. Category 和 Protocol
-#### (1) Category 数据结构：
+## 6. Category 和 Protocol
+### (1) Category 数据结构：
 ```
 struct category_t {
     const char *name; 
@@ -487,25 +687,25 @@ struct category_t {
     property_list_t *propertiesForMeta(bool isMeta, struct header_info *hi);
 };
 ```
-#### (2) Category 的用途：
+### (2) Category 的用途：
 
- 1) 给现有的类添加方法
+ 1 ) 给现有的类添加方法
 
- 2) 将一个类的实现拆分成多个独立的源文件
+ 2 ) 将一个类的实现拆分成多个独立的源文件
 
- 3) 声明私有的方法
+ 3 ) 声明私有的方法
 
 *注意:* Category 有一个非常容易误用的场景，那就是用 Category 来覆写父类或主类的方法。虽然目前 Objective-C 是允许这么做的，但是这种使用场景是非常不推荐的。使用 Category 来覆写方法有很多缺点，比如不能覆写 Category 中的方法、无法调用主类中的原始实现等，且很容易造成无法预估的行为。 
-#### (3) Category 的实现原理：
-1）在编译时期，会将 Category 中实现的方法生成一个结构体 method_list_t ，将声明的属性生成一个结构体 property_list_t ，然后通过这些结构体生成一个结构体 category_t 并保存。
+### (3) Category 的实现原理：
+1 ）在编译时期，会将 Category 中实现的方法生成一个结构体 method_list_t ，将声明的属性生成一个结构体 property_list_t ，然后通过这些结构体生成一个结构体 category_t 并保存。
 
-2）在运行时期，Runtime 会拿到编译时期我们保存下来的结构体 category_t 然后将结构体 category_t 中的实例方法列表、协议列表、属性列表添加到主类中。
+2 ）在运行时期，Runtime 会拿到编译时期我们保存下来的结构体 category_t 然后将结构体 category_t 中的实例方法列表、协议列表、属性列表添加到主类中。
 
-3）将结构体 category_t 中的类方法列表、协议列表添加到主类的 metaClass 中。
+3 ）将结构体 category_t 中的类方法列表、协议列表添加到主类的 metaClass 中。
 
-*注意点(1)：*category_t 中的方法列表是插入到主类的方法列表前面，所以这里 Category 中实现的方法并不会真正的覆盖掉主类中的方法，只是将 Category 的方法插到方法列表的前面去了，运行时在查找方法的时候是顺着方法列表的顺序查找的，它只要一找到对应名字的方法，就会停止查找，即会出现覆盖方法的这种假象了。
+*注意点 (1)：*category_t 中的方法列表是插入到主类的方法列表前面，所以这里 Category 中实现的方法并不会真正的覆盖掉主类中的方法，只是将 Category 的方法插到方法列表的前面去了，运行时在查找方法的时候是顺着方法列表的顺序查找的，它只要一找到对应名字的方法，就会停止查找，即会出现覆盖方法的这种假象了。
 
-*注意点(2)：*Category 添加实例变量，因为在运行期，对象的内存布局已经确定，如果添加实例变量就会破坏类的内部布局。
+*注意点 (2)：*Category 添加实例变量，因为在运行期，对象的内存布局已经确定，如果添加实例变量就会破坏类的内部布局。
 
 关键代码在 objc-runtime-new.mm 中的 _read_images 方法中实现，如下：
 ```
@@ -625,13 +825,13 @@ void _read_images(header_info **hList, uint32_t hCount, int totalClasses, int un
 ```
 上面代码主要完成了一下以下几件事：
 
-1）将 Category 和它的主类（或元类）注册到哈希表中
+1 ）将 Category 和它的主类（或元类）注册到哈希表中
 
-2）如果主类（或元类）已实现，那么重建它的方法列表
+2 ）如果主类（或元类）已实现，那么重建它的方法列表
 
-3）Category 中的实例方法和属性被整合到主类中；而类方法则被整合到元类中
+3 ）Category 中的实例方法和属性被整合到主类中；而类方法则被整合到元类中
 
-4）对协议的处理比较特殊，Category 中的协议被同时整合到了主类和元类中
+4 ）对协议的处理比较特殊，Category 中的协议被同时整合到了主类和元类中
 
 上述代码中通过 static void remethodizeClass(Class cls) 函数来重新整理类的数据结构，代码如下：
 ```
@@ -718,7 +918,7 @@ attachCategories(Class cls, category_list *cats, bool flush_caches)
     free(protolists);
 }
 ```
-#### (4) ：Protocol
+### (4) Protocol
 Protocol 结构如下：
 ```
 typedef uintptr_t protocol_ref_t;  // protocol_t *, but unremapped
@@ -742,7 +942,7 @@ struct protocol_t : objc_object {
 }
 ```
 
-#### (5) ：Category 和 Protocol 的操作方法
+### (5) Category 和 Protocol 的操作方法
 ```
 // 返回指定的协议
 Protocol * objc_getProtocol ( const char *name );
@@ -789,16 +989,46 @@ Protocol ** protocol_copyProtocolList ( Protocol *proto, unsigned int *outCount 
 // 查看协议是否采用了另一个协议
 BOOL protocol_conformsToProtocol ( Protocol *proto, Protocol *other );
 ```
-#### (6) ：Category 和 Protocol 的操作示例
+
+### (7) Extention
+**Extention 格式如下：**
 ```
-//贴代码
+@interface ClassName()
+//私有属性
+//私有方法，如果不实现，编译时会报警
+@end
 ```
 
-### 7. Runtime 的应用
+**(2) Extension 的作用: **
+
+1 )  为一个类添加原来没有的变量、方法、属性
+2 )  一般的类扩展写到 .m 文件中
+3 )  一般的私有属性写到 .m 文件中的类扩展中
+
+**(3) Extension 的区别: **
+
+1 )  Category 中原则上只能增加方法（能添加属性的的原因只是通过 runtime 解决无 setter / getter 的问题而已）。Extension 不仅可以增加方法，还可以增加实例变量（或者属性），只是该实例变量默认是 Private 类型的。
+
+2 )  Extension 中声明的方法没被实现，编译器会报警，但是 Category 中的方法没被实现编译器是不会有任何警告的。Extention 添加的方法是在编译阶段被添加到类中，而 Category 添加的方法是在运行时添加到类中。所以相对于两者各有不同特性。
+
+3 )  Extention 不能像 Category 那样拥有独立的实现部分。也就是说，Extention 所声明的方法必须依托对应类的实现部分来实现。
+
+4 )  定义在 .m 文件中的 Extention 方法为私有的，Extention 是在 .m 文件中声明私有方法的非常好的方式。
+
+## 7. Runtime 的应用
 **(1) 利用 Method Swizzling 特性实现用户行为收集，预防数组字典越界奔溃， 代码解耦等**
 
 **(2) 获取系统提供的库相关信息**
 
 **(3) 为类动态添加方法**
 
-## Swift Runtime
+# Swift Runtime
+已查阅到的资料，待消化总结：
+
+[https://github.com/apple/swift/blob/master/docs/Runtime.md](https://github.com/apple/swift/blob/master/docs/Runtime.md)
+
+[https://mp.weixin.qq.com/s?__biz=MzA4MjA0MTc4NQ==&mid=403068491&idx=1&sn=c95f07e3d38c92ba56933502cc3e1800#rd](https://mp.weixin.qq.com/s?__biz=MzA4MjA0MTc4NQ==&mid=403068491&idx=1&sn=c95f07e3d38c92ba56933502cc3e1800#rd)
+
+[https://nshipster.com/swift-objc-runtime/](https://nshipster.com/swift-objc-runtime/)
+
+[https://academy.realm.io/posts/mobilization-roy-marmelstein-objective-c-runtime-swift-dynamic/](https://academy.realm.io/posts/mobilization-roy-marmelstein-objective-c-runtime-swift-dynamic/)
