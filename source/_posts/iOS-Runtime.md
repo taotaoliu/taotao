@@ -5,7 +5,7 @@ tags: iOS
 ---
 
 Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo](https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo)
-# Objc Runtime
+## Objc Runtime
   源代码下载地址：[http://www.opensource.apple.com/source/objc4/](http://www.opensource.apple.com/source/objc4/)
 
   Runtime 函数文档: [https://developer.apple.com/documentation/objectivec/objective-c_runtime](https://developer.apple.com/documentation/objectivec/objective-c_runtime)
@@ -13,7 +13,7 @@ Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/m
   苹果官方 Runtime 编程指南：
   [https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008048)
 
-## 1. 概念
+### 1. 概念
  Objective-C 是一门动态语言，它将很多静态语言在编译和链接时做的事情推迟到运行时来处理。
 
  这种动态特性意味着 Objective-C 不仅需要一个编译器，还需要一个运行时系统来执行编译的代码。
@@ -23,13 +23,13 @@ Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/m
 
 **Objc Runtime 使得 C 具有了面向对象能力，可以在程序运行时创建、检查、修改类、对象和它们的方法**。
 
-## 2. Runtime 的作用：
-### (1) 封装
+### 2. Runtime 的作用：
+#### (1) 封装
  Runtime 库中，对象可以用 C 语言中的结构体表示，而方法可以用 C 函数来实现，再加上了一些其他的特性。这些结构体和函数被 runtime 函数封装后，就可以在程序运行时创建、检查、修改类、对象和它们的方法了。
 ### (2) 找到方法的最终执行代码
  当程序中执行 [receiver message] 时，会向消息接收者（receiver）发送一条消息 message，runtime 会根据消息接收者是否能响应该消息而做出不同的反应，即消息转发的流程。
-## 3. 类和对象（Class 和 Object）相关的基本数据结构
-### (1) 关键词：
+### 3. 类和对象（Class 和 Object）相关的基本数据结构
+#### (1) 关键词：
  Class：指向了 objc_class 结构体的指针 
 	id：参数类型，指向某个类实例的指针 
 	Method：代表了类中的某个方法的类型
@@ -39,12 +39,12 @@ Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/m
 	Property：属性存储器
 	Cache：方法调用的缓存器，为方法调用的性能进行优化
 
-### (2) objc_class 和 objc_object 数据结构：
+#### (2) objc_class 和 objc_object 数据结构：
 ```
 typedef struct objc_class *Class;
 typedef struct objc_object *id;
 ```
-### (3) objc_object 和 isa
+#### (3) objc_object 和 isa
 objc_object 源代码在 objc-private.h line 75, 关键代码如下：
 ```
 struct objc_object {
@@ -74,7 +74,7 @@ struct {
     uintptr_t extra_rc          : 8                                                    //引用计数能够用 8 个二进制位存储时，直接存储在这里
 }
 ```
-### (4) objc_class
+#### (4) objc_class
 objc_class 源代码可在 objc-runtime-new.h line 1111 看到，由于 objc_class 继承自 objc_object， 所以其关键结构可简化如下:
 ```
 struct objc_class : objc_object {
@@ -92,7 +92,7 @@ objc_object 用来描述 OC 中的实例，当用口语描述实例时，总会�
 Objective-C 中的类本质上也是对象，称之为类对象，在 Objective-C 中有一个非常特殊的类 NSObject ，绝大部分的类都继承自它。它是 Objective-C 中的两个根类（rootclass）之一，另外一个是 NSProxy。
 NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会有这个成员变量。
 
-### (5) 元类（metaclass）、根类（root class）、根元类（root metaclass）
+#### (5) 元类（metaclass）、根类（root class）、根元类（root metaclass）
 本质上 Objective-C 中的类也是对象，它也是某个类的实例，这个类我们称之为元类（metaclass）。元类也是对象（元类对象），元类也是某个类的实例，这个类我们称之为根元类（root metaclass）。
 不过，有一点比较特殊，那就是所有的元类所属的类都是同一个根元类（当然根元类也是元类，所以它所属的类也是根元类，即它本身）。根元类指的就是根类的元类，具体来说就是根类 NSObject 对应的元类。
 
@@ -100,9 +100,9 @@ NSObject 只有一个成员变量 isa。所有继承自 NSObject 的类也都会
 
 下图是为类（class），元类（metaclass），根类（root class），根元类（root metaclass）关系
 ![](iOS-Runtime/object_model.png)
-### (6) superclass
+#### (6) superclass
 指向该类的父类，如果该类已经是最顶层的根类（如 NSObject 或 NSProxy），则 superclass 为 NULL。
-### (7) cache_t
+#### (7) cache_t
 cache_t 是一个散列表，用来缓存曾经调用过的方法，提高方法的查找速度。
 源代码可在 objc-runtime-new.h line 59 找到，其关键结构如下:
 ```
@@ -123,7 +123,7 @@ struct bucket_t {
 
 **occupied：**一个整数，指定实际占用的缓存 bucket 的总数。
 
-### (8) class_data_bits_t
+#### (8) class_data_bits_t
 class_data_bits_t 是一个结构体，里面包含了一个 class_rw_t 类型的指针 data。class_rw_t 内部有个 class_ro_t 的指针 ro。class_rw_t 是可读可写的，class_ro_t 是只读的。 class_data_bits_t 源代码可以在 objc-runtime-new.h line 870 看到。
 
 **class_rw_t** 结构如下：
@@ -204,10 +204,10 @@ struct property_t {
 
 class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期就可以确定的，暂且称为元信息吧，在之后的逻辑中，它们显然是不希望被改变的；后续在用户层，无论是方法还是别的扩展，都是在 class_rw_t 上进行操作，这些操作都不会影响类的元信息。更多关于 class_rw_t 和 class_ro_t 的资料可查看 [这篇文章](https://zhangbuhuai.com/post/runtime.html)。
 
-## 4. 类和对象相关操作方法
+### 4. 类和对象相关操作方法
 操作类相关的函数一般以 class 为前缀，操作对象相关函数以 objc 或 object_ 为前缀。可在开篇 Runtime 函数文档查看相关方法。
 
-### (1) 类相关操作函数	
+#### (1) 类相关操作函数	
 ```
 	const char * class_getName ( Class cls )           // 获取类名
 
@@ -224,7 +224,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 ```
 
-### (2) 成员变量 (ivars) 和属性相关操作函数
+#### (2) 成员变量 (ivars) 和属性相关操作函数
 ```
 	Ivar class_getInstanceVariable ( Class cls, const char *name )                                           // 获取类中指定名称实例成员变量的信息
 
@@ -236,7 +236,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 
 ```
-### (3) method 相关操作函数
+#### (3) method 相关操作函数
 ```
 	BOOL class_addMethod ( Class cls, SEL name, IMP imp, const char *types )       // 添加方法，和成员变量不同的是可以为类动态添加方法。如果有同名会返回 NO，修改的话需要使用 method_setImplementation
 
@@ -257,7 +257,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 
 ```
-### (4) protocol 相关操作函数
+#### (4) protocol 相关操作函数
 ```
 	BOOL class_addProtocol ( Class cls, Protocol *protocol )                       // 添加协议
 
@@ -268,7 +268,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 
 ```
 
-### (5) 相关示例代码及输出：
+#### (5) 相关示例代码及输出：
 ```
  RuntimClass *runtimeClass = [[RuntimClass alloc] init];
  Class cls = runtimeClass.class;
@@ -474,8 +474,8 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 2019-06-15 18:26:12.615037+0800 RuntimDemo[18732:16102829] **********************************
 ```
 
-## 5. 消息与消息转发
-### (1) Method 基础数据结构：
+### 5. 消息与消息转发
+#### (1) Method 基础数据结构：
   Method 是 method_t 结构体的指针，method_t 在分析 method_list_t 已写出其结构，其结构中包括 SEL 和 IMP 两种数据结构。
 
 **SEL：**Objective-C 在编译的时候，objc_selector 会依据方法的名字、参数序列、生成一个整型标识的地址
@@ -494,7 +494,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 	#endif
 ```
 **SEL 和 IMP 为映射关系：**SEL 通过 Dispatch table 表寻找到对应的 IMP， Dispatch table 表存放 SEL 和 IMP 的映射。我们可以对一个编号 (SEL) 和什么方法 (IMP) 映射做些操作，也就是说我们可以一个 SEL 指向不同的函数指针，这样就可以完成一个方法名在不同时候执行不同的函数体。
-### (2) 相关操作方法：
+#### (2) 相关操作方法：
 ```
 	// 调用指定方法的实现，返回的是方法实现时的返回，参数 receiver 不能为空，这个比 method_getImplementation 和 method_getName 速度快
 	void method_invoke_stret ( id receiver, Method m, ... )
@@ -547,7 +547,7 @@ class_ro_t 包含的类信息（方法、属性、协议等）都是在编译期
 	// 比较两个选择器                        
 	BOOL sel_isEqual ( SEL lhs, SEL rhs )                               
 ```
-### (4) Method 调用流程：
+#### (4) Method 调用流程：
 **objc_msgSend 函数：** 这个函数将消息接收者和方法名作为基础参数。消息发送给一个对象时，objc_msgSend 通过对象的 isa 指针获得类的结构体，先在 Cache 里找，找到就执行，没找到就在分发列表里查找方法的 selector，没找到就通过 objc_msgSend 结构体中指向父类的指针找到父类，然后在父类分发列表找，直到 root class（NSObject）。Objc 中发送消息是用中括号把接收者和消息括起来，只到运行时才会把消息和方法实现绑定。为了加快速度，苹果对这个方法做了很多优化，这个方法是用汇编实现的。
 objc_msgSend 定义如下：
 ```
@@ -596,7 +596,7 @@ if ([self respondsToSelector:@selector(method)]) {
 ```
 [消息转发更详细资料](http://yulingtianxia.com/blog/2016/06/15/Objective-C-Message-Sending-and-Forwarding/)
 
-### (5) Method Swizzling：
+#### (5) Method Swizzling：
 Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现，实现 Hook 功能，是一种比子类化更加灵活的“重写”方法的方式。讲 Method 结构的时候提到过：原则上方法的名称 name 和方法的实现 imp 是一一对应的，而 Method Swizzling 的原理就是动态地改变它们的对应关系，达到替换方法实现的目的，如下代码实现了 NSArray 异常操作的崩溃拦截功能：
 ```
 #import "NSArray+SafeArray.h"
@@ -666,8 +666,8 @@ Objective-C 中的 Method Swizzling 允许我们动态地替换方法的实现�
 一个类维护一个运行时可接收的消息分发表，分发表中每个入口是一个 Method，其中 key 是一个特定的名称即 SEL，与其对应的实现是 IMP 即指向底层 C 函数的指针。
 
 [Runtime Method Swizzling 开发实例汇总](https://juejin.im/entry/584912648e450a006c4be90a)
-## 6. Category 和 Protocol
-### (1) Category 数据结构：
+### 6. Category 和 Protocol
+#### (1) Category 数据结构：
 ```
 struct category_t {
     const char *name; 
@@ -687,7 +687,7 @@ struct category_t {
     property_list_t *propertiesForMeta(bool isMeta, struct header_info *hi);
 };
 ```
-### (2) Category 的用途：
+#### (2) Category 的用途：
 
  1 ) 给现有的类添加方法
 
@@ -696,7 +696,7 @@ struct category_t {
  3 ) 声明私有的方法
 
 *注意:* Category 有一个非常容易误用的场景，那就是用 Category 来覆写父类或主类的方法。虽然目前 Objective-C 是允许这么做的，但是这种使用场景是非常不推荐的。使用 Category 来覆写方法有很多缺点，比如不能覆写 Category 中的方法、无法调用主类中的原始实现等，且很容易造成无法预估的行为。 
-### (3) Category 的实现原理：
+#### (3) Category 的实现原理：
 1 ）在编译时期，会将 Category 中实现的方法生成一个结构体 method_list_t ，将声明的属性生成一个结构体 property_list_t ，然后通过这些结构体生成一个结构体 category_t 并保存。
 
 2 ）在运行时期，Runtime 会拿到编译时期我们保存下来的结构体 category_t 然后将结构体 category_t 中的实例方法列表、协议列表、属性列表添加到主类中。
@@ -918,7 +918,7 @@ attachCategories(Class cls, category_list *cats, bool flush_caches)
     free(protolists);
 }
 ```
-### (4) Protocol
+#### (4) Protocol
 Protocol 结构如下：
 ```
 typedef uintptr_t protocol_ref_t;  // protocol_t *, but unremapped
@@ -942,7 +942,7 @@ struct protocol_t : objc_object {
 }
 ```
 
-### (5) Category 和 Protocol 的操作方法
+#### (5) Category 和 Protocol 的操作方法
 ```
 // 返回指定的协议
 Protocol * objc_getProtocol ( const char *name );
@@ -990,7 +990,7 @@ Protocol ** protocol_copyProtocolList ( Protocol *proto, unsigned int *outCount 
 BOOL protocol_conformsToProtocol ( Protocol *proto, Protocol *other );
 ```
 
-### (7) Extention
+#### (7) Extention
 **Extention 格式如下：**
 ```
 @interface ClassName()
@@ -1015,14 +1015,14 @@ BOOL protocol_conformsToProtocol ( Protocol *proto, Protocol *other );
 
 4 )  定义在 .m 文件中的 Extention 方法为私有的，Extention 是在 .m 文件中声明私有方法的非常好的方式。
 
-## 7. Runtime 的应用
+### 7. Runtime 的应用
 **(1) 利用 Method Swizzling 特性实现用户行为收集，预防数组字典越界奔溃， 代码解耦等**
 
 **(2) 获取系统提供的库相关信息**
 
 **(3) 为类动态添加方法**
 
-# Swift Runtime
+## Swift Runtime
 已查阅到的资料，待消化总结：
 
 [https://github.com/apple/swift/blob/master/docs/Runtime.md](https://github.com/apple/swift/blob/master/docs/Runtime.md)
