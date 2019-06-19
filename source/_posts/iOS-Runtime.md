@@ -999,13 +999,13 @@ BOOL protocol_conformsToProtocol ( Protocol *proto, Protocol *other );
 @end
 ```
 
-**(2) Extension 的作用: **
+**(2) Extension 的作用**
 
 1 )  为一个类添加原来没有的变量、方法、属性
 2 )  一般的类扩展写到 .m 文件中
 3 )  一般的私有属性写到 .m 文件中的类扩展中
 
-**(3) Extension 的区别: **
+**(3) Category 和 Extension 的区别**
 
 1 )  Category 中原则上只能增加方法（能添加属性的的原因只是通过 runtime 解决无 setter / getter 的问题而已）。Extension 不仅可以增加方法，还可以增加实例变量（或者属性），只是该实例变量默认是 Private 类型的。
 
