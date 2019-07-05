@@ -4,7 +4,7 @@ date: 2019-05-30 10:25:47
 tags: iOS
 ---
 
-Runtime 总结相关示例代码：[https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo](https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo)
+Runtime 相关示例代码：[https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo](https://github.com/terryfine/BlogDemo/tree/master/RuntimDemo)
 ## Objc Runtime
   源代码下载地址：[http://www.opensource.apple.com/source/objc4/](http://www.opensource.apple.com/source/objc4/)
 

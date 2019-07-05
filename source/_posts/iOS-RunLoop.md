@@ -24,10 +24,10 @@ Swift 版本 RunLoop 源码：
 #### 4) Event Loop 解决的问题
 处理事件一般来说分为同步和异步，Event Loop 就是实现了异步处理事件的一种方法。对于有 Event Handler 的 Event 线程不用等待任务的结果出来再去执行下一个，而是等待 Event 被加入到 Event Loop 的时候再去执行，如果一个 Event 也没有，线程就会休眠，避免浪费资源。如果没有 Event Loop 实现异步操作，用户操作就会出现卡顿。
 ### (2) RunLoop 与线程
-1.每个线程都有唯一的一个与之对应的 RunLoop 对象。
-2.RunLoop 保存在一个全局的 Dictionary 里，线程作为 key , RunLoop 作为 value 。
-3.主线程的 RunLoop 已经自动创建好了，子线程的 RunLoop 需要主动创建。
-4.RunLoop 在第一次获取时创建，在线程结束时销毁。
+1) 每个线程都有唯一的一个与之对应的 RunLoop 对象。
+2) RunLoop 保存在一个全局的 Dictionary 里，线程作为 key , RunLoop 作为 value 。
+3) 主线程的 RunLoop 已经自动创建好了，子线程的 RunLoop 需要主动创建。
+4) RunLoop 在第一次获取时创建，在线程结束时销毁。
 
 上述关系可从下列源代码中看到:
 ```
